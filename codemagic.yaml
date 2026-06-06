@@ -13,6 +13,8 @@ workflows:
         BUNDLE_ID: "app.hashstack.edeen"
         XCODE_WORKSPACE: "ios/edeen.xcworkspace"
         XCODE_SCHEME: "edeen"
+        APP_STORE_CONNECT_ISSUER_ID: "5bf05485-6d13-4268-98e5-7c8c63f1f016"
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "Q49TZA5C7A"
       node: 20.11.0
       xcode: 15.2
       cocoapods: default
@@ -30,11 +32,6 @@ workflows:
         script: |
           xcode-project use-profiles
       
-      - name: Increment build number
-        script: |
-          cd ios
-          agvtool new-version -all $(($(app-store-connect get-latest-build-number "$APP_STORE_ID") + 1))
-      
       - name: Build iOS app
         script: |
           xcode-project build-ipa \
@@ -49,15 +46,13 @@ workflows:
     publishing:
       email:
         recipients:
-          - zidiicoder@gmail.com
+          - mezidiihun@gmail.com
         notify:
           success: true
           failure: true
       
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        auth: integration
         submit_to_testflight: true
         submit_to_app_store: false
 
@@ -95,7 +90,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - zidiicoder@gmail.com
+          - mezidiihun@gmail.com
         notify:
           success: true
           failure: true
