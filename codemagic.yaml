@@ -31,16 +31,19 @@ workflows:
       
       - name: Patch fmt library for Xcode compatibility
         script: |
-          # Apply patches to fmt library to fix compilation issues
           cd ios/Pods/fmt/src
           if [ -f "format.cc" ]; then
-            # Add pragmas to suppress deprecation warnings
-            sed -i '' '1i\
-            #pragma clang diagnostic push\
-            #pragma clang diagnostic ignored "-Wdeprecated-declarations"\
-            #pragma clang diagnostic ignored "-Wdeprecated"\
-            ' format.cc
-            echo "#pragma clang diagnostic pop" >> format.cc
+            chmod +w format.cc
+            cat > format_patched.cc << 'EOF'
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Wdeprecated"
+EOF
+            cat format.cc >> format_patched.cc
+            echo "" >> format_patched.cc
+            echo "#pragma clang diagnostic pop" >> format_patched.cc
+            mv format_patched.cc format.cc
+            echo "✅ Patched fmt/src/format.cc successfully"
           fi
       
       - name: Set up code signing settings on Xcode project
