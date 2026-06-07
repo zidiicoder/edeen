@@ -25,13 +25,15 @@ workflows:
       - name: Install CocoaPods dependencies
         script: |
           cd ios
-          rm -rf Pods Podfile.lock
-          pod install
+          rm -rf Pods Podfile.lock ~/Library/Caches/CocoaPods
+          pod deintegrate || true
+          pod install --repo-update --verbose
       
       - name: Clean Xcode build cache
         script: |
           cd ios
           rm -rf ~/Library/Developer/Xcode/DerivedData
+          rm -rf build
           xcodebuild clean -workspace edeen.xcworkspace -scheme edeen
       
       - name: Set up code signing settings on Xcode project
@@ -43,7 +45,7 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME" \
-            --archive-flags="-UseModernBuildSystem=YES CLANG_ENABLE_MODULES=YES GCC_TREAT_WARNINGS_AS_ERRORS=NO"
+            --archive-flags="CLANG_ENABLE_MODULES=NO GCC_TREAT_WARNINGS_AS_ERRORS=NO ENABLE_USER_SCRIPT_SANDBOXING=NO CLANG_ENABLE_MODULE_VERIFIER=NO"
     
     artifacts:
       - build/ios/ipa/*.ipa
