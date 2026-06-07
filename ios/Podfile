@@ -42,8 +42,8 @@ target 'edeen' do
           config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
         end
         
-        # Fix for fmt, glog, and Yoga pods - disable treat warnings as errors
-        if target.name == 'fmt' || target.name == 'glog' || target.name == 'Yoga'
+        # Fix for problematic pods - disable treat warnings as errors
+        if target.name == 'fmt' || target.name == 'glog' || target.name == 'Yoga' || target.name.start_with?('Firebase')
           config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         end
         
