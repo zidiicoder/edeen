@@ -42,12 +42,11 @@ target 'edeen' do
           config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
         end
         
-        # Fix for problematic pods - disable treat warnings as errors
-        if target.name == 'fmt' || target.name == 'glog' || target.name == 'Yoga' || target.name.start_with?('Firebase')
-          config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
-        end
+        # Global settings for all targets to handle Xcode 16 compatibility
+        config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+        config.build_settings['WARNING_CFLAGS'] = '-Wno-error'
         
-        # Disable explicit modules to fix React-RuntimeHermes ScanDependencies error
+        # Disable explicit modules globally to fix React-RuntimeHermes ScanDependencies error
         config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
       end
     end
