@@ -46,8 +46,10 @@ target 'edeen' do
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         config.build_settings['WARNING_CFLAGS'] = '-Wno-error'
         
-        # Disable modules for React Runtime targets to fix ScanDependencies error
-        if target.name == 'React-RuntimeHermes' || target.name == 'React-RuntimeApple' || target.name == 'React-RCTRuntime'
+        # Disable modules for React Runtime and RCT targets to fix ScanDependencies error
+        problematic_targets = ['React-RuntimeHermes', 'React-RuntimeApple', 'React-RCTRuntime', 
+                                'React-RCTAppDelegate', 'ReactCodegen']
+        if problematic_targets.include?(target.name)
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
         end
       end
