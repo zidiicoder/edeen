@@ -46,10 +46,19 @@ target 'edeen' do
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         config.build_settings['WARNING_CFLAGS'] = '-Wno-error'
         
-        # CRITICAL: Disable module verifier for ALL pods
-        # This is the key to fixing Xcode 16.1 ScanDependencies errors
-        # while keeping modules enabled for Swift interop
+        # CRITICAL: Disable module verifier globally for Xcode 16.1 compatibility
         config.build_settings['CLANG_ENABLE_MODULE_VERIFIER'] = 'NO'
+        
+        # ADDITIONAL: Disable modules for specific React Runtime C++ targets that fail ScanDependencies
+        # These targets have fundamental incompatibilities with Xcode 16.1's module scanner
+        is_problematic_runtime_target = target.name == 'React-RuntimeHermes' ||
+                                        target.name == 'React-RuntimeApple' ||
+                                        target.name == 'React-RuntimeCore'
+        
+        if is_problematic_runtime_target
+          config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
+          config.build_settings['SWIFT_ENABLE_BARE_SLASH_REGEX'] = 'NO'
+        end
         
         # Enable module distribution for ALL targets
         config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
