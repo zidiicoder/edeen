@@ -46,8 +46,11 @@ target 'edeen' do
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         config.build_settings['WARNING_CFLAGS'] = '-Wno-error'
         
-        # Disable explicit modules globally to fix React-RuntimeHermes ScanDependencies error
-        config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
+        # Only disable modules for React-RuntimeHermes (fixes ScanDependencies error)
+        # Keep modules enabled for SwiftUI and other targets that need them
+        if target.name == 'React-RuntimeHermes'
+          config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
+        end
       end
     end
   end
