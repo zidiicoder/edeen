@@ -59,7 +59,10 @@ target 'edeen' do
         # These targets have fundamental incompatibilities with Xcode 16.1's module scanner
         is_problematic_runtime_target = target.name == 'React-RuntimeHermes' ||
                                         target.name == 'React-RuntimeApple' ||
-                                        target.name == 'React-RuntimeCore'
+                                        target.name == 'React-RuntimeCore' ||
+                                        target.name == 'React-RCTRuntime' ||
+                                        target.name == 'React-RCTAppDelegate' ||
+                                        target.name == 'ReactCodegen'
         
         if is_problematic_runtime_target
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
