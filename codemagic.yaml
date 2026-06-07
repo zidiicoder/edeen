@@ -25,6 +25,7 @@ workflows:
       - name: Install CocoaPods dependencies
         script: |
           cd ios
+          rm -rf Pods Podfile.lock
           pod install
       
       - name: Clean Xcode build cache
