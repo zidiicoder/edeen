@@ -46,9 +46,9 @@ target 'edeen' do
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         config.build_settings['WARNING_CFLAGS'] = '-Wno-error'
         
-        # Only disable modules for specific React Runtime targets (fixes ScanDependencies error)
+        # Disable modules for all React-related targets that have ScanDependencies issues
         # Keep modules enabled for SwiftUI and other targets that need them
-        if target.name == 'React-RuntimeHermes' || target.name == 'React-RuntimeApple' || target.name == 'React-RCTRuntime'
+        if target.name.start_with?('React-Runtime') || target.name.start_with?('React-RCT')
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
         end
       end
