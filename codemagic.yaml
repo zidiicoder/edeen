@@ -29,6 +29,20 @@ workflows:
           pod deintegrate
           pod install --repo-update
       
+      - name: Patch fmt library for Xcode compatibility
+        script: |
+          # Apply patches to fmt library to fix compilation issues
+          cd ios/Pods/fmt/src
+          if [ -f "format.cc" ]; then
+            # Add pragmas to suppress deprecation warnings
+            sed -i '' '1i\
+            #pragma clang diagnostic push\
+            #pragma clang diagnostic ignored "-Wdeprecated-declarations"\
+            #pragma clang diagnostic ignored "-Wdeprecated"\
+            ' format.cc
+            echo "#pragma clang diagnostic pop" >> format.cc
+          fi
+      
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
