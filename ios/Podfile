@@ -49,6 +49,12 @@ target 'edeen' do
         # CRITICAL: Disable module verifier globally for Xcode 16.1 compatibility
         config.build_settings['CLANG_ENABLE_MODULE_VERIFIER'] = 'NO'
         
+        # Disable Swift module verification in Release builds
+        if config.name == 'Release'
+          config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'
+          config.build_settings['SWIFT_EMIT_MODULE_INTERFACE'] = 'NO'
+        end
+        
         # ADDITIONAL: Disable modules for specific React Runtime C++ targets that fail ScanDependencies
         # These targets have fundamental incompatibilities with Xcode 16.1's module scanner
         is_problematic_runtime_target = target.name == 'React-RuntimeHermes' ||
