@@ -27,6 +27,12 @@ workflows:
           cd ios
           pod install
       
+      - name: Clean Xcode build cache
+        script: |
+          cd ios
+          rm -rf ~/Library/Developer/Xcode/DerivedData
+          xcodebuild clean -workspace edeen.xcworkspace -scheme edeen
+      
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
