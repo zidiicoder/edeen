@@ -46,9 +46,9 @@ target 'edeen' do
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         config.build_settings['WARNING_CFLAGS'] = '-Wno-error'
         
-        # Disable modules for all React-related targets that have ScanDependencies issues
-        # Keep modules enabled for SwiftUI and other targets that need them
-        if target.name.start_with?('React-Runtime') || target.name.start_with?('React-RCT')
+        # Disable modules for all React-related targets that have ScanDependencies issues in Xcode 16
+        # This includes React-Runtime*, React-RCT*, ReactCodegen, ReactCommon, and other React modules
+        if target.name.start_with?('React')
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
         end
       end
