@@ -45,6 +45,12 @@ target 'edeen' do
         # Global settings for all targets to handle Xcode 16 compatibility
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         config.build_settings['WARNING_CFLAGS'] = '-Wno-error'
+        
+        # Disable modules ONLY for React-RuntimeHermes to fix ScanDependencies error
+        # All other targets keep modules enabled
+        if target.name == 'React-RuntimeHermes'
+          config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
+        end
       end
     end
   end
