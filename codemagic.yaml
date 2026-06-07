@@ -34,16 +34,14 @@ workflows:
           cd ios/Pods/fmt/src
           if [ -f "format.cc" ]; then
             chmod +w format.cc
-            cat > format_patched.cc << 'EOF'
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#pragma clang diagnostic ignored "-Wdeprecated"
-EOF
+            echo '#pragma clang diagnostic push' > format_patched.cc
+            echo '#pragma clang diagnostic ignored "-Wdeprecated-declarations"' >> format_patched.cc
+            echo '#pragma clang diagnostic ignored "-Wdeprecated"' >> format_patched.cc
             cat format.cc >> format_patched.cc
             echo "" >> format_patched.cc
             echo "#pragma clang diagnostic pop" >> format_patched.cc
             mv format_patched.cc format.cc
-            echo "✅ Patched fmt/src/format.cc successfully"
+            echo "Patched fmt/src/format.cc successfully"
           fi
       
       - name: Set up code signing settings on Xcode project
