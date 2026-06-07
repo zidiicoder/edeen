@@ -73,3 +73,13 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Temporary documentation and log files
+version.md
+error.md
+edeen.log
+codemagic.md
+
+# Sensitive keys
+AuthKey_*.p8
+*.p8
