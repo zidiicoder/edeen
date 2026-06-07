@@ -29,6 +29,14 @@ workflows:
           pod deintegrate || true
           pod install --repo-update --verbose
       
+      - name: Generate React Native Codegen
+        script: |
+          cd ios
+          export RCT_NEW_ARCH_ENABLED=1
+          node ../node_modules/react-native/scripts/generate-codegen-artifacts.js \
+            --path ../ \
+            --outputPath build/generated/ios
+      
       - name: Clean Xcode build cache
         script: |
           cd ios
