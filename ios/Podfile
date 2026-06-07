@@ -46,9 +46,16 @@ target 'edeen' do
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         config.build_settings['WARNING_CFLAGS'] = '-Wno-error'
         
-        # Disable modules for all React-related targets that have ScanDependencies issues in Xcode 16
-        # This includes React-Runtime*, React-RCT*, ReactCodegen, ReactCommon, and other React modules
-        if target.name.start_with?('React')
+        # Disable modules for specific React core targets that have ScanDependencies issues in Xcode 16
+        # Do NOT disable for third-party react-native-* libraries as they need modules for UIKit/WebKit
+        react_core_targets = ['React-RuntimeHermes', 'React-RuntimeApple', 'React-RCTRuntime', 
+                               'React-RCTAppDelegate', 'ReactCodegen', 'ReactCommon',
+                               'React-Core', 'React-CoreModules', 'React-RCTAnimation',
+                               'React-RCTBlob', 'React-RCTImage', 'React-RCTLinking',
+                               'React-RCTNetwork', 'React-RCTSettings', 'React-RCTText',
+                               'React-RCTVibration']
+        
+        if react_core_targets.include?(target.name)
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
         end
       end
