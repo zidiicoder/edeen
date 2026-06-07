@@ -46,6 +46,9 @@ target 'edeen' do
         if target.name == 'fmt' || target.name == 'glog' || target.name == 'Yoga'
           config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         end
+        
+        # Disable explicit modules to fix React-RuntimeHermes ScanDependencies error
+        config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
       end
     end
   end
