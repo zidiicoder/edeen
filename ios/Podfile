@@ -34,11 +34,17 @@ target 'edeen' do
       # :ccache_enabled => true
     )
     
-    # Set minimum iOS deployment target to 13.0 for all pods
+    # Fix deployment target and compiler settings for all pods
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
+        # Set minimum iOS deployment target to 13.0
         if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 13.0
           config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+        end
+        
+        # Fix for fmt, glog, and Yoga pods - disable treat warnings as errors
+        if target.name == 'fmt' || target.name == 'glog' || target.name == 'Yoga'
+          config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         end
       end
     end
