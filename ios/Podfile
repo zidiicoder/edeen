@@ -46,28 +46,21 @@ target 'edeen' do
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         config.build_settings['WARNING_CFLAGS'] = '-Wno-error'
         
-        # SURGICAL FIX: Only disable modules for React Native C++/ObjC targets
-        # Keep modules enabled for Swift pods (Firebase, etc)
-        is_react_native_target = target.name.start_with?('React') || 
-                                 target.name.include?('react-native') ||
-                                 target.name == 'Yoga' ||
-                                 target.name == 'DoubleConversion' ||
-                                 target.name.include?('RN')
+        # PRECISE FIX: Only disable modules for React Native C++/ObjC Runtime targets
+        # Keep modules enabled for ALL Swift targets (Firebase, RCTSwiftUI, etc)
+        is_react_runtime_target = target.name == 'React-RuntimeHermes' ||
+                                  target.name == 'React-RuntimeApple' ||
+                                  target.name == 'React-RuntimeCore' ||
+                                  target.name == 'React-RCTRuntime' ||
+                                  target.name == 'React-RCTAppDelegate' ||
+                                  target.name == 'ReactCodegen'
         
-        is_swift_target = target.name.include?('Firebase') ||
-                          target.name.include?('Google') ||
-                          target.name.include?('FBL') ||
-                          target.name.include?('Promises')
-        
-        # Disable modules ONLY for React Native targets, NOT for Swift pods
-        if is_react_native_target && !is_swift_target
+        # Only disable modules for these specific problematic targets
+        if is_react_runtime_target
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
           config.build_settings['CLANG_ENABLE_MODULE_VERIFIER'] = 'NO'
           config.build_settings['SWIFT_ENABLE_BARE_SLASH_REGEX'] = 'NO'
         end
-        
-        # Keep Swift optimization at default for Release (don't override)
-        # The -Osize was breaking Firebase Swift modules
         
         # Enable module distribution for ALL targets
         config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
