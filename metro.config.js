@@ -1,4 +1,5 @@
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+const path = require('path');
 
 /**
  * Metro configuration
@@ -8,11 +9,22 @@ const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
  */
 const config = {
   resolver: {
-    // Force Metro to use 'react-native' > 'browser' > 'main' fields in package.json
-    // instead of the 'exports' field. This fixes axios v1.x which has an 'exports'
-    // field that resolves to its Node.js dist (requires crypto/url/http built-ins
-    // that don't exist in React Native's JS environment).
-    unstable_enablePackageExports: false,
+    resolveRequest: (context, moduleName, platform) => {
+      // axios v1.x resolves to its Node.js dist (dist/node/axios.cjs) which
+      // requires Node built-ins (crypto, url, http) not available in React Native.
+      // Intercept and force the browser-safe build instead.
+      if (moduleName === 'axios') {
+        return {
+          filePath: path.resolve(
+            __dirname,
+            'node_modules/axios/dist/browser/axios.cjs'
+          ),
+          type: 'sourceFile',
+        };
+      }
+      // Default resolution for everything else
+      return context.resolveRequest(context, moduleName, platform);
+    },
   },
 };
 
