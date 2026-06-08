@@ -65,7 +65,9 @@ target 'edeen' do
                                         target.name == 'React-RCTAppDelegate' ||
                                         target.name == 'ReactCodegen' ||
                                         target.name == 'react-native-webview' ||
-                                        target.name == 'react-native-safe-area-context'
+                                        target.name == 'react-native-safe-area-context' ||
+                                        target.name == 'ReactAppDependencyProvider' ||
+                                        target.name == 'react-native-image-picker'
         
         if is_problematic_runtime_target
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
