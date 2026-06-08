@@ -32,18 +32,7 @@ workflows:
           # Set NODE_BINARY for Xcode React Native script phase
           NODE_PATH=$(command -v node)
           echo "export NODE_BINARY=$NODE_PATH" > ios/.xcode.env.local
-          # Also export the full PATH so metro/hermes can be found
-          echo "export PATH=$PATH" >> ios/.xcode.env.local
           cat ios/.xcode.env.local
-      
-      - name: Pre-bundle React Native JS
-        script: |
-          npx react-native bundle \
-            --platform ios \
-            --dev false \
-            --entry-file index.js \
-            --bundle-output ios/main.jsbundle \
-            --assets-dest ios
       
       - name: Set up code signing settings on Xcode project
         script: |
