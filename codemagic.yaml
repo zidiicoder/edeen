@@ -35,12 +35,6 @@ workflows:
           rm -rf ~/Library/Developer/Xcode/DerivedData
           xcodebuild clean -workspace edeen.xcworkspace -scheme edeen
       
-      - name: Disable ReactCodegen target
-        script: |
-          # ReactCodegen files aren't being generated, so disable this target
-          cd ios
-          sed -i '' 's/\${PODS_CONFIGURATION_BUILD_DIR}\/ReactCodegen//' Pods/Target\ Support\ Files/Pods-edeen/Pods-edeen.release.xcconfig || true
-      
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles

@@ -62,7 +62,9 @@ target 'edeen' do
                                         target.name == 'React-RuntimeApple' ||
                                         target.name == 'React-RuntimeCore' ||
                                         target.name == 'React-RCTRuntime' ||
-                                        target.name == 'React-RCTAppDelegate'
+                                        target.name == 'React-RCTAppDelegate' ||
+                                        target.name == 'ReactCodegen' ||
+                                        target.name == 'react-native-webview'
         
         if is_problematic_runtime_target
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
