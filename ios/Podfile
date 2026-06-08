@@ -55,9 +55,23 @@ target 'edeen' do
           config.build_settings['SWIFT_EMIT_MODULE_INTERFACE'] = 'NO'
         end
         
-        # Keep modules ENABLED but disable strict verification for Xcode 16.1 compatibility
-        # This prevents ScanDependencies failures while still allowing module imports
-        # Module verifier is already disabled globally above, so no need for per-target disabling
+        # SURGICAL FIX: Disable modules ONLY for React Native C++ runtime targets that fail ScanDependencies
+        # These are pure C++ libraries that don't need Clang modules for Swift interop
+        # Keep modules enabled for everything else to prevent redefinition errors
+        is_cpp_runtime_target = target.name == 'React-RuntimeHermes' ||
+                                target.name == 'React-RuntimeApple' ||
+                                target.name == 'React-RuntimeCore' ||
+                                target.name == 'React-RCTRuntime' ||
+                                target.name == 'React-hermes' ||
+                                target.name == 'React-jsiexecutor' ||
+                                target.name == 'React-cxxreact' ||
+                                target.name == 'ReactCodegen' ||
+                                target.name == 'ReactAppDependencyProvider' ||
+                                target.name.start_with?('Pods-')
+        
+        if is_cpp_runtime_target
+          config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
+        end
         
         # Enable module distribution for ALL targets
         config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
