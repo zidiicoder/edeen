@@ -34,6 +34,12 @@ workflows:
           rm -rf ~/Library/Developer/Xcode/DerivedData
           xcodebuild clean -workspace edeen.xcworkspace -scheme edeen
       
+      - name: Set NODE_BINARY for Xcode bundler
+        script: |
+          NODE_PATH=$(which node)
+          echo "export NODE_BINARY=$NODE_PATH" > ios/.xcode.env.local
+          echo "NODE_BINARY set to: $NODE_PATH"
+      
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
