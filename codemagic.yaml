@@ -26,6 +26,7 @@ workflows:
         script: |
           cd ios
           rm -rf Pods Podfile.lock ~/Library/Caches/CocoaPods
+          pod cache clean --all
           pod deintegrate || true
           pod install --repo-update --verbose
       
