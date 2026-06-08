@@ -3,63 +3,60 @@ workflows:
     name: iOS Production Build
     max_build_duration: 120
     instance_type: mac_mini_m2
+
     environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: app.hashstack.edeen
+
       vars:
         BUNDLE_ID: "app.hashstack.edeen"
         XCODE_WORKSPACE: "ios/edeen.xcworkspace"
         XCODE_SCHEME: "edeen"
-      groups:
-        - app_store_connect
+
       node: latest
       xcode: 16.4
       cocoapods: default
+
     scripts:
       - name: Install npm dependencies
-        script: |
-          npm install --legacy-peer-deps
-      
+        script: npm install --legacy-peer-deps
+
       - name: Install CocoaPods dependencies
         script: |
           cd ios
           rm -rf Pods Podfile.lock
           pod install --repo-update
-      
+
       - name: Configure Node.js path for Xcode
         script: |
-          # Write .xcode.env.local so Xcode script phases can find node & metro tools
           NODE_PATH=$(command -v node)
           echo "export NODE_BINARY=$NODE_PATH" > ios/.xcode.env.local
           echo "export PATH=$PATH" >> ios/.xcode.env.local
-          cat ios/.xcode.env.local
-      
+
       - name: Pre-bundle React Native JS
         script: |
-          # Bundle JS before Xcode runs so the script phase finds it and skips metro
           npx react-native bundle \
             --platform ios \
             --dev false \
             --entry-file index.js \
             --bundle-output ios/main.jsbundle \
             --assets-dest ios
-      
-      - name: Set up code signing settings on Xcode project
-        script: |
-          xcode-project use-profiles
-      
+
+      - name: Set up code signing
+        script: xcode-project use-profiles
+
       - name: Build iOS app
         script: |
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-    
+
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-    
+
     publishing:
       email:
         recipients:
@@ -67,7 +64,7 @@ workflows:
         notify:
           success: true
           failure: true
-      
+
       app_store_connect:
         api_key:
           key_id: Q49TZA5C7A
@@ -81,38 +78,39 @@ workflows:
             -----END PRIVATE KEY-----
         submit_to_testflight: true
         submit_to_app_store: false
-  
+
   android-production:
     name: Android Production Build
     max_build_duration: 120
     instance_type: mac_mini_m2
+
     environment:
       android_signing:
         - edeen_keystore
-      groups:
-        - google_play
+
       vars:
         PACKAGE_NAME: "com.edeen"
+
       node: latest
       java: 17
+
     scripts:
       - name: Install npm dependencies
-        script: |
-          npm install --legacy-peer-deps
-      
+        script: npm install --legacy-peer-deps
+
       - name: Set up local.properties
         script: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
-      
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+
       - name: Build Android release
         script: |
           cd android
           ./gradlew bundleRelease
-    
+
     artifacts:
       - android/app/build/outputs/**/*.aab
       - android/app/build/outputs/**/*.apk
-    
+
     publishing:
       email:
         recipients:
@@ -120,7 +118,7 @@ workflows:
         notify:
           success: true
           failure: true
-      
+
       google_play:
         credentials: $GPLAY_SERVICE_ACCOUNT_CREDENTIALS
         track: internal
