@@ -11,11 +11,10 @@ workflows:
         BUNDLE_ID: "app.hashstack.edeen"
         XCODE_WORKSPACE: "ios/edeen.xcworkspace"
         XCODE_SCHEME: "edeen"
-        APP_STORE_CONNECT_ISSUER_ID: "5bf05485-6d13-4268-98e5-7c8c63f1f016"
-        APP_STORE_CONNECT_KEY_IDENTIFIER: "Q49TZA5C7A"
-        APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
+      groups:
+        - app_store_connect
       node: latest
-      xcode: 16.4
+      xcode: latest
       cocoapods: default
     scripts:
       - name: Install npm dependencies
@@ -28,34 +27,12 @@ workflows:
           rm -rf Pods Podfile.lock
           pod install --repo-update
       
-      - name: Set NODE_BINARY and pre-bundle JavaScript
-        script: |
-          # Write the exact node path into .xcode.env.local (takes priority over .xcode.env)
-          NODE_PATH=$(which node)
-          echo "export NODE_BINARY=$NODE_PATH" > ios/.xcode.env.local
-          echo "✅ NODE_BINARY set to: $NODE_PATH"
-          
-          # Pre-bundle JS manually so Xcode's bundle phase can be skipped cleanly.
-          # This also surfaces any Metro/JS errors early with full output.
-          $NODE_PATH node_modules/.bin/react-native bundle \
-            --platform ios \
-            --dev false \
-            --entry-file index.js \
-            --bundle-output ios/main.jsbundle \
-            --assets-dest ios \
-            --verbose
-          echo "✅ JS bundle created at ios/main.jsbundle"
-      
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
       
       - name: Build iOS app
         script: |
-          # SKIP_BUNDLING=1 tells react-native-xcode.sh to skip Metro bundling
-          # since we already pre-bundled above. This avoids the restricted-shell
-          # NODE_BINARY issue in Xcode's script phase.
-          export SKIP_BUNDLING=1
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
@@ -74,11 +51,11 @@ workflows:
           failure: true
       
       app_store_connect:
+        auth: key
+        key_id: Q49TZA5C7A
+        issuer_id: 5bf05485-6d13-4268-98e5-7c8c63f1f016
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
-        submit_to_app_store: false
 
   android-production:
     name: Android Production Build
