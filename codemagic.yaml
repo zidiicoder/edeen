@@ -15,7 +15,7 @@ workflows:
         APP_STORE_CONNECT_KEY_IDENTIFIER: "Q49TZA5C7A"
         APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
       node: latest
-      xcode: 15.4
+      xcode: 16.4
       cocoapods: default
     scripts:
       - name: Install npm dependencies
