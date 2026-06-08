@@ -19,7 +19,8 @@ target 'edeen' do
 
   use_react_native!(
     :path => config[:reactNativePath],
-    # An absolute path to your application root.
+    :hermes_enabled => true,
+    :fabric_enabled => false,
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
@@ -30,13 +31,11 @@ target 'edeen' do
       :mac_catalyst_enabled => false
     )
     
-    # Xcode 16+ compatibility fixes for React Native 0.72
+    # Xcode 16+ compatibility fixes
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
         # Set minimum iOS deployment target
-        if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 13.0
-          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
-        end
+        config.build_settings.delete 'IPHONEOS_DEPLOYMENT_TARGET'
         
         # Suppress warnings
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
@@ -44,12 +43,6 @@ target 'edeen' do
         
         # Disable user script sandboxing for Xcode 16
         config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
-        
-        # Use classic linker
-        config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
-        unless config.build_settings['OTHER_LDFLAGS'].include?('-Wl,-ld_classic')
-          config.build_settings['OTHER_LDFLAGS'] << '-Wl,-ld_classic'
-        end
       end
     end
   end
