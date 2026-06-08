@@ -105,21 +105,29 @@ target 'edeen' do
     # Save the project to ensure changes persist
     installer.pods_project.save
     
-    # CRITICAL FIX: Remove duplicate/conflicting modulemap files that cause redefinition errors
-    # This is a known issue with React Native new architecture and CocoaPods
-    # The react_runtime modulemaps conflict with ReactCommon modulemaps
-    puts "Removing conflicting modulemaps..."
+    # CRITICAL FIX: Fix conflicting React Native modulemaps that cause redefinition errors
+    # The react_runtime modulemaps incorrectly define modules that conflict with ReactCommon
+    # Instead of deleting (which breaks other targets), we rename them to unique module names
+    puts "Fixing conflicting React Native modulemaps..."
     
-    conflicting_modulemaps = [
-      "#{installer.sandbox.root}/Headers/Public/react_runtime/React-jsitooling.modulemap",
-      "#{installer.sandbox.root}/Headers/Public/react_runtime/React-RuntimeCore.modulemap",
-    ]
+    # Fix React-jsitooling.modulemap - rename module to avoid conflict with ReactCommon
+    jsitooling_modulemap = "#{installer.sandbox.root}/Headers/Public/react_runtime/React-jsitooling.modulemap"
+    if File.exist?(jsitooling_modulemap)
+      content = File.read(jsitooling_modulemap)
+      # Rename 'module ReactCommon' to 'module React_jsitooling' to avoid conflict
+      content.gsub!(/module\s+ReactCommon\s*\{/, 'module React_jsitooling {')
+      File.write(jsitooling_modulemap, content)
+      puts "Fixed #{jsitooling_modulemap}"
+    end
     
-    conflicting_modulemaps.each do |modulemap_path|
-      if File.exist?(modulemap_path)
-        File.delete(modulemap_path)
-        puts "Deleted conflicting modulemap: #{modulemap_path}"
-      end
+    # Fix React-RuntimeCore.modulemap - rename module to avoid conflict with react_runtime
+    runtimecore_modulemap = "#{installer.sandbox.root}/Headers/Public/react_runtime/React-RuntimeCore.modulemap"
+    if File.exist?(runtimecore_modulemap)
+      content = File.read(runtimecore_modulemap)
+      # Rename 'module react_runtime' to 'module React_RuntimeCore' to avoid conflict
+      content.gsub!(/module\s+react_runtime\s*\{/, 'module React_RuntimeCore {')
+      File.write(runtimecore_modulemap, content)
+      puts "Fixed #{runtimecore_modulemap}"
     end
   end
 end
