@@ -57,6 +57,7 @@ target 'edeen' do
         
         # SURGICAL FIX: Disable modules for targets that fail ScanDependencies with Xcode 16.1
         # This includes React Native core runtime AND all third-party packages
+        # ALSO disable for targets that reference problematic react_runtime modulemaps
         is_problematic_target = target.name == 'React-RuntimeHermes' ||
                                 target.name == 'React-RuntimeApple' ||
                                 target.name == 'React-RuntimeCore' ||
@@ -67,6 +68,8 @@ target 'edeen' do
                                 target.name == 'React-cxxreact' ||
                                 target.name == 'ReactCodegen' ||
                                 target.name == 'ReactAppDependencyProvider' ||
+                                target.name == 'React-NativeModulesApple' ||
+                                target.name == 'React-RCTText' ||
                                 target.name.start_with?('Pods-') ||
                                 target.name.start_with?('react-native-') ||
                                 target.name.start_with?('RN')
@@ -104,30 +107,5 @@ target 'edeen' do
     
     # Save the project to ensure changes persist
     installer.pods_project.save
-    
-    # CRITICAL FIX: Fix conflicting React Native modulemaps that cause redefinition errors
-    # The react_runtime modulemaps incorrectly define modules that conflict with ReactCommon
-    # Instead of deleting (which breaks other targets), we rename them to unique module names
-    puts "Fixing conflicting React Native modulemaps..."
-    
-    # Fix React-jsitooling.modulemap - rename module to avoid conflict with ReactCommon
-    jsitooling_modulemap = "#{installer.sandbox.root}/Headers/Public/react_runtime/React-jsitooling.modulemap"
-    if File.exist?(jsitooling_modulemap)
-      content = File.read(jsitooling_modulemap)
-      # Rename 'module ReactCommon' to 'module React_jsitooling' to avoid conflict
-      content.gsub!(/module\s+ReactCommon\s*\{/, 'module React_jsitooling {')
-      File.write(jsitooling_modulemap, content)
-      puts "Fixed #{jsitooling_modulemap}"
-    end
-    
-    # Fix React-RuntimeCore.modulemap - rename module to avoid conflict with react_runtime
-    runtimecore_modulemap = "#{installer.sandbox.root}/Headers/Public/react_runtime/React-RuntimeCore.modulemap"
-    if File.exist?(runtimecore_modulemap)
-      content = File.read(runtimecore_modulemap)
-      # Rename 'module react_runtime' to 'module React_RuntimeCore' to avoid conflict
-      content.gsub!(/module\s+react_runtime\s*\{/, 'module React_RuntimeCore {')
-      File.write(runtimecore_modulemap, content)
-      puts "Fixed #{runtimecore_modulemap}"
-    end
   end
 end
