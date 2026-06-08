@@ -55,10 +55,9 @@ target 'edeen' do
           config.build_settings['SWIFT_EMIT_MODULE_INTERFACE'] = 'NO'
         end
         
-        # SURGICAL FIX: Disable modules ONLY for React Native C++ runtime targets that fail ScanDependencies
-        # These are pure C++ libraries that don't need Clang modules for Swift interop
-        # Keep modules enabled for everything else to prevent redefinition errors
-        is_cpp_runtime_target = target.name == 'React-RuntimeHermes' ||
+        # SURGICAL FIX: Disable modules for targets that fail ScanDependencies with Xcode 16.1
+        # This includes React Native core runtime AND all third-party react-native-* packages
+        is_problematic_target = target.name == 'React-RuntimeHermes' ||
                                 target.name == 'React-RuntimeApple' ||
                                 target.name == 'React-RuntimeCore' ||
                                 target.name == 'React-RCTRuntime' ||
@@ -68,9 +67,10 @@ target 'edeen' do
                                 target.name == 'React-cxxreact' ||
                                 target.name == 'ReactCodegen' ||
                                 target.name == 'ReactAppDependencyProvider' ||
-                                target.name.start_with?('Pods-')
+                                target.name.start_with?('Pods-') ||
+                                target.name.start_with?('react-native-')
         
-        if is_cpp_runtime_target
+        if is_problematic_target
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
         end
         
