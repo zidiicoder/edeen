@@ -65,7 +65,7 @@ workflows:
           success: true
           failure: true
 
-      app_store_connect:
+app_store_connect:
   api_key:
     key_id: Q49TZA5C7A
     issuer_id: 5bf05485-6d13-4268-98e5-7c8c63f1f016
