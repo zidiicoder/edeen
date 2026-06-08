@@ -27,6 +27,12 @@ workflows:
           rm -rf Pods Podfile.lock
           pod install --repo-update
       
+      - name: Configure Node.js path for Xcode
+        script: |
+          # Set NODE_BINARY for Xcode React Native script
+          echo "export NODE_BINARY=$(command -v node)" > ios/.xcode.env.local
+          cat ios/.xcode.env.local
+      
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
