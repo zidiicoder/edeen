@@ -64,18 +64,16 @@ workflows:
           failure: true
       
       app_store_connect:
-        api_key:
-          key_id: Q49TZA5C7A
-          issuer_id: 5bf05485-6d13-4268-98e5-7c8c63f1f016
-          private_key: |
-            -----BEGIN PRIVATE KEY-----
-            MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgO4kBs5ctb2yNdoza
-            6rqbuQxfbit8ruoLcyyh1CYPJUmgCgYIKoZIzj0DAQehRANCAASIAkfgO5Q5O95a
-            p1YXGqYboKznVwGdNcTxnnY9anFs7F7yv5t2tgEOILsVXSjAbGCArwhsYLyWdBdl
-            a6lUPBVh
-            -----END PRIVATE KEY-----
+        key_id: Q49TZA5C7A
+        issuer_id: 5bf05485-6d13-4268-98e5-7c8c63f1f016
+        key: |
+          -----BEGIN PRIVATE KEY-----
+          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgO4kBs5ctb2yNdoza
+          6rqbuQxfbit8ruoLcyyh1CYPJUmgCgYIKoZIzj0DAQehRANCAASIAkfgO5Q5O95a
+          p1YXGqYboKznVwGdNcTxnnY9anFs7F7yv5t2tgEOILsVXSjAbGCArwhsYLyWdBdl
+          a6lUPBVh
+          -----END PRIVATE KEY-----
         submit_to_testflight: true
-        submit_to_app_store: false
 
   android-production:
     name: Android Production Build
