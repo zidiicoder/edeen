@@ -30,7 +30,7 @@ target 'edeen' do
       :mac_catalyst_enabled => false
     )
     
-    # Simple Xcode 16+ compatibility fixes
+    # Xcode 16+ compatibility fixes for React Native 0.72
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
         # Set minimum iOS deployment target
@@ -41,6 +41,9 @@ target 'edeen' do
         # Suppress warnings
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
         config.build_settings['WARNING_CFLAGS'] = '-Wno-error'
+        
+        # Disable user script sandboxing for Xcode 16
+        config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
         
         # Use classic linker
         config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
