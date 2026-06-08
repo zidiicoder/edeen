@@ -107,5 +107,20 @@ target 'edeen' do
     
     # Save the project to ensure changes persist
     installer.pods_project.save
+    
+    # FINAL FIX: Remove the problematic react_runtime modulemaps that cause redefinition
+    # These MUST be removed because they conflict with ReactCommon.modulemap
+    # Do this LAST after all other post_install modifications
+    puts "Removing conflicting react_runtime modulemaps..."
+    
+    [
+      "#{installer.sandbox.root}/Headers/Public/react_runtime/React-jsitooling.modulemap",
+      "#{installer.sandbox.root}/Headers/Public/react_runtime/React-RuntimeCore.modulemap"
+    ].each do |path|
+      if File.exist?(path)
+        File.delete(path)
+        puts "  Deleted: #{path}"
+      end
+    end
   end
 end
