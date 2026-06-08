@@ -51,10 +51,9 @@ workflows:
           failure: true
       
       app_store_connect:
-        auth: key
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: Q49TZA5C7A
         issuer_id: 5bf05485-6d13-4268-98e5-7c8c63f1f016
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         submit_to_testflight: true
 
   android-production:
