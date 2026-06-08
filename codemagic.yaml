@@ -21,7 +21,7 @@ workflows:
           a6lUPBVh
           -----END PRIVATE KEY-----
       node: latest
-      xcode: 16.4
+      xcode: latest
       cocoapods: default
     scripts:
       - name: Install npm dependencies
