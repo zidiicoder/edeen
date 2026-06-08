@@ -61,11 +61,13 @@ target 'edeen' do
         # - ReactCodegen, ReactAppDependencyProvider
         # - RN* targets (RNVectorIcons, RNWorklets, RNScreens, etc.)
         # - react-native-* targets (react-native-webview, react-native-geolocation-service, etc.)
+        # - Pods-edeen umbrella target
         is_react_native_target = target.name.start_with?('React-') ||
                                  target.name.start_with?('React') ||
                                  target.name.start_with?('RN') ||
                                  target.name.start_with?('react-native-') ||
-                                 target.name.include?('react')
+                                 target.name.include?('react') ||
+                                 target.name.start_with?('Pods-')
         
         if is_react_native_target
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
