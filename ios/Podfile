@@ -104,5 +104,22 @@ target 'edeen' do
     
     # Save the project to ensure changes persist
     installer.pods_project.save
+    
+    # CRITICAL FIX: Remove duplicate/conflicting modulemap files that cause redefinition errors
+    # This is a known issue with React Native new architecture and CocoaPods
+    # The react_runtime modulemaps conflict with ReactCommon modulemaps
+    puts "Removing conflicting modulemaps..."
+    
+    conflicting_modulemaps = [
+      "#{installer.sandbox.root}/Headers/Public/react_runtime/React-jsitooling.modulemap",
+      "#{installer.sandbox.root}/Headers/Public/react_runtime/React-RuntimeCore.modulemap",
+    ]
+    
+    conflicting_modulemaps.each do |modulemap_path|
+      if File.exist?(modulemap_path)
+        File.delete(modulemap_path)
+        puts "Deleted conflicting modulemap: #{modulemap_path}"
+      end
+    end
   end
 end
