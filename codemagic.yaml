@@ -32,33 +32,32 @@ workflows:
           # Fix boost checksum error by replacing with correct podspec
           BOOST_PODSPEC="../node_modules/react-native/third-party-podspecs/boost.podspec"
           if [ -f "$BOOST_PODSPEC" ]; then
-            cat > "$BOOST_PODSPEC" << 'EOF'
-Pod::Spec.new do |spec|
-  spec.name = 'boost'
-  spec.version = '1.76.0'
-  spec.license = { :type => 'Boost Software License', :file => "LICENSE_1_0.txt" }
-  spec.homepage = 'http://www.boost.org'
-  spec.summary = 'Boost provides free peer-reviewed portable C++ source libraries.'
-  spec.authors = 'Rene Rivera'
-  spec.source = {
-    :http => 'https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2',
-    :sha256 => '7bd7ddceec1a1dfdcbdb3e609b60d01739c38390a5f956385a12f3122049f0ca'
-  }
-
-  spec.requires_arc = false
-  spec.prepare_command = 'mv LICENSE_1_0.txt LICENSE'
-  spec.preserve_paths = '*'
-  spec.compiler_flags = '-Wno-documentation'
-  spec.header_mappings_dir = '.'
-  spec.module_map = false
-  spec.libraries = 'c++'
-  spec.pod_target_xcconfig = {
-    'USE_HEADERMAP' => 'YES',
-    'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/boost" "$(PODS_TARGET_SRCROOT)"',
-    'CLANG_CXX_LANGUAGE_STANDARD' => 'c++14'
-  }
-end
-EOF
+            cat > "$BOOST_PODSPEC" << 'BOOSTEOF'
+          Pod::Spec.new do |spec|
+            spec.name = 'boost'
+            spec.version = '1.76.0'
+            spec.license = { :type => 'Boost Software License', :file => "LICENSE_1_0.txt" }
+            spec.homepage = 'http://www.boost.org'
+            spec.summary = 'Boost provides free peer-reviewed portable C++ source libraries.'
+            spec.authors = 'Rene Rivera'
+            spec.source = {
+              :http => 'https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2',
+              :sha256 => '7bd7ddceec1a1dfdcbdb3e609b60d01739c38390a5f956385a12f3122049f0ca'
+            }
+            spec.requires_arc = false
+            spec.prepare_command = 'mv LICENSE_1_0.txt LICENSE'
+            spec.preserve_paths = '*'
+            spec.compiler_flags = '-Wno-documentation'
+            spec.header_mappings_dir = '.'
+            spec.module_map = false
+            spec.libraries = 'c++'
+            spec.pod_target_xcconfig = {
+              'USE_HEADERMAP' => 'YES',
+              'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/boost" "$(PODS_TARGET_SRCROOT)"',
+              'CLANG_CXX_LANGUAGE_STANDARD' => 'c++14'
+            }
+          end
+          BOOSTEOF
             echo "Replaced boost.podspec with correct checksum"
           fi
           
