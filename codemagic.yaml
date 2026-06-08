@@ -14,7 +14,7 @@ workflows:
       groups:
         - app_store_connect
       node: latest
-      xcode: latest
+      xcode: 16.4
       cocoapods: default
     scripts:
       - name: Install npm dependencies
