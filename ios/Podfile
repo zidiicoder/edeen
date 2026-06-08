@@ -55,24 +55,9 @@ target 'edeen' do
           config.build_settings['SWIFT_EMIT_MODULE_INTERFACE'] = 'NO'
         end
         
-        # ADDITIONAL: Disable modules for ALL React Native related targets that fail ScanDependencies with Xcode 16.1
-        # This includes:
-        # - React-* core targets (React-RuntimeHermes, React-RCTRuntime, etc.)
-        # - ReactCodegen, ReactAppDependencyProvider
-        # - RN* targets (RNVectorIcons, RNWorklets, RNScreens, etc.)
-        # - react-native-* targets (react-native-webview, react-native-geolocation-service, etc.)
-        # - Pods-edeen umbrella target
-        is_react_native_target = target.name.start_with?('React-') ||
-                                 target.name.start_with?('React') ||
-                                 target.name.start_with?('RN') ||
-                                 target.name.start_with?('react-native-') ||
-                                 target.name.include?('react') ||
-                                 target.name.start_with?('Pods-')
-        
-        if is_react_native_target
-          config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
-          config.build_settings['SWIFT_ENABLE_BARE_SLASH_REGEX'] = 'NO'
-        end
+        # Keep modules ENABLED but disable strict verification for Xcode 16.1 compatibility
+        # This prevents ScanDependencies failures while still allowing module imports
+        # Module verifier is already disabled globally above, so no need for per-target disabling
         
         # Enable module distribution for ALL targets
         config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
