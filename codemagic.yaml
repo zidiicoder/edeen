@@ -29,21 +29,17 @@ workflows:
           pod deintegrate || true
           pod install --repo-update --verbose
       
-      - name: Generate React Native Codegen
-        script: |
-          cd ios
-          export RCT_NEW_ARCH_ENABLED=1
-          node ../node_modules/react-native/scripts/generate-codegen-artifacts.js \
-            --path ../ \
-            --targetPlatform ios \
-            --outputPath build/generated/ios
-      
       - name: Clean Xcode build cache
         script: |
           cd ios
           rm -rf ~/Library/Developer/Xcode/DerivedData
-          rm -rf build
           xcodebuild clean -workspace edeen.xcworkspace -scheme edeen
+      
+      - name: Disable ReactCodegen target
+        script: |
+          # ReactCodegen files aren't being generated, so disable this target
+          cd ios
+          sed -i '' 's/\${PODS_CONFIGURATION_BUILD_DIR}\/ReactCodegen//' Pods/Target\ Support\ Files/Pods-edeen/Pods-edeen.release.xcconfig || true
       
       - name: Set up code signing settings on Xcode project
         script: |
