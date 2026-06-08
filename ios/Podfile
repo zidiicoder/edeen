@@ -62,6 +62,7 @@ target 'edeen' do
                                 target.name == 'React-RuntimeApple' ||
                                 target.name == 'React-RuntimeCore' ||
                                 target.name == 'React-RCTRuntime' ||
+                                target.name == 'React-RCTAppDelegate' ||
                                 target.name == 'React-hermes' ||
                                 target.name == 'React-jsiexecutor' ||
                                 target.name == 'React-cxxreact' ||
