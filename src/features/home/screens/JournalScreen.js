@@ -8,24 +8,20 @@ import {
   TextInput,
   Platform,
   KeyboardAvoidingView,
-  Modal,
-  Pressable,
 } from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import colors from '../../../theme/colors';
 
 import { request } from '../../../utils/api';
 import { journalSchema } from '../../../validation/validate';
 import { handleBatchErrors } from '../../../utils';
-import MainTabHeader from '../components/modal/MainTabHeader';
 import CalendarModal from '../components/modal/CalendarModal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
-import { COMMON_FILTERS, toApiDate, toApiFilter } from '../constants/filters';
+import { toApiDate, toApiFilter } from '../constants/filters';
 import { AuthContext } from '../../../context/AuthContext';
 
 const MAX_GRATITUDE_ITEMS = 3;
@@ -127,13 +123,11 @@ function hydrateEntry(item) {
 }
 
 export default function JournalScreen() {
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { user } = useContext(AuthContext);
 
   const [entries, setEntries] = useState([]);
   const [filter, setFilter] = useState('All');
-  const [filterOpen, setFilterOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetchingEntries, setFetchingEntries] = useState(false);
@@ -357,53 +351,6 @@ export default function JournalScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <MainTabHeader
-        title={user?.name || 'User'}
-        bg="#CFE4F5"
-        filterLabel={filter}
-        onPressFilter={() => setFilterOpen(true)}
-        onPressBell={() => navigation.navigate('Notifications')}
-        onPressSettings={() => navigation.navigate('Profile')}
-      />
-
-      <Modal visible={filterOpen} transparent animationType="fade">
-        <Pressable style={styles.modalOverlay} onPress={() => setFilterOpen(false)}>
-          <Pressable style={styles.dropdownCard} onPress={() => {}}>
-            {COMMON_FILTERS.map(item => {
-              const active = item === filter;
-              return (
-                <TouchableOpacity
-                  key={item}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.dropdownItem,
-                    active && styles.dropdownItemActive,
-                  ]}
-                  onPress={() => {
-                    if (item === 'Custom') {
-                      setFilterOpen(false);
-                      setTimeout(() => setCalendarOpen(true), 120);
-                      return;
-                    }
-                    setFilter(item);
-                    setFilterOpen(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.dropdownText,
-                      active && styles.dropdownTextActive,
-                    ]}
-                  >
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       <CalendarModal
         visible={calendarOpen}
         monthLabel={monthLabel}
