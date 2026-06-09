@@ -6,20 +6,16 @@ import {
   StyleSheet,
   Text,
   View,
-  Modal,
-  Pressable,
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import Geolocation from 'react-native-geolocation-service';
 import colors from '../../../theme/colors';
 import TrackerModeTabs from '../components/tracking/TrackerModeTabs';
 import TrackingSalahPanel from '../components/tracking/TrackingSalahPanel';
 import TrackingQuranPanel from '../components/tracking/TrackingQuranPanel';
-import MainTabHeader from '../components/modal/MainTabHeader';
 import CalendarModal from '../components/modal/CalendarModal';
-import { COMMON_FILTERS } from '../constants/filters';
 import { request } from '../../../utils/api';
 import { AuthContext } from '../../../context/AuthContext';
 
@@ -133,7 +129,6 @@ function formatMinutesAsDuration(totalMinutes) {
 }
 
 export default function SalahTrackerScreen() {
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const route = useRoute();
   const { user } = useContext(AuthContext);
@@ -142,7 +137,6 @@ export default function SalahTrackerScreen() {
   const [salahTimeLoadedOnce, setSalahTimeLoadedOnce] = useState(false);
   const [salahTimeLoadError, setSalahTimeLoadError] = useState('');
   const [filter, setFilter] = useState('All');
-  const [filterOpen, setFilterOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [activeTracker, setActiveTracker] = useState('salah');
   const [deviceLocation, setDeviceLocation] = useState(null);
@@ -324,46 +318,6 @@ export default function SalahTrackerScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <MainTabHeader
-        title={user?.name || 'User'}
-        bg="#CFE4F5"
-        filterLabel={filter}
-        onPressFilter={() => setFilterOpen(true)}
-        onPressBell={() => navigation.navigate('Notifications')}
-        onPressSettings={() => navigation.navigate('Profile')}
-      />
-      <Modal visible={filterOpen} transparent animationType="fade">
-        <Pressable
-          style={styles.filterOverlay}
-          onPress={() => setFilterOpen(false)}
-        >
-          <Pressable style={styles.dropdownCard} onPress={() => {}}>
-            {COMMON_FILTERS.map(item => {
-              const active = item === filter;
-              return (
-                <TouchableOpacity
-                  key={item}
-                  activeOpacity={0.85}
-                  style={[styles.dropdownItem, active && styles.dropdownItemActive]}
-                  onPress={() => {
-                    if (item === 'Custom') {
-                      setFilterOpen(false);
-                      setTimeout(() => setCalendarOpen(true), 120);
-                      return;
-                    }
-                    setFilter(item);
-                    setFilterOpen(false);
-                  }}
-                >
-                  <Text style={[styles.dropdownText, active && styles.dropdownTextActive]}>
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </Pressable>
-        </Pressable>
-      </Modal>
       <CalendarModal
         visible={calendarOpen}
         monthLabel={monthLabel}
@@ -520,45 +474,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 22,
-  },
-  filterOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.10)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 90,
-    paddingRight: 18,
-  },
-  dropdownCard: {
-    width: 150,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F2B7D9',
-    paddingVertical: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  dropdownItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginHorizontal: 8,
-    marginVertical: 4,
-  },
-  dropdownItemActive: {
-    backgroundColor: '#F4C9E4',
-  },
-  dropdownText: {
-    fontSize: 13,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  dropdownTextActive: {
-    fontWeight: '800',
   },
   currentSalahCard: {
     backgroundColor: '#EAF4FB',
