@@ -58,7 +58,7 @@ export default function MainTabHeader({
   return (
     <View style={[styles.headerCard, { backgroundColor: bg }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>Salam, {title}</Text>
+        <Text style={styles.headerTitle}>Salam {title}</Text>
         <View style={styles.headerIcons}>
           <TouchableOpacity
             onPress={
