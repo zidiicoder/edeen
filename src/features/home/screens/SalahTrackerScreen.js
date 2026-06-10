@@ -397,12 +397,10 @@ export default function SalahTrackerScreen() {
               </View>
             </View>
 
-            {hasCurrentSalahData && hasUpcomingSalahData ? (
+            {hasCurrentSalahData && hasUpcomingSalahData && (
               <Text style={styles.nextSalahText}>
                 Next: {salahTime.upcoming?.name || 'None'} at {salahTime.upcoming?.start_time || 'N/A'}
               </Text>
-            ) : (
-              <Text style={styles.nextSalahText}>Date: {possibleSalahDate}</Text>
             )}
           </View>
         ) : (
