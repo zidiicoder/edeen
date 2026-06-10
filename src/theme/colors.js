@@ -4,6 +4,7 @@ const colors = {
   textMuted: '#6B6B6B',
   dotMuted: '#CFE7E0',
   dotActive: '#2F5D50',
+  lightGreen: '#CFE7E0',
   button: '#CFE7E0',
   inputBg: '#EEEEEE',
   link: '#2A7C9D',

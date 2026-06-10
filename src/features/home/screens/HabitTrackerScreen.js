@@ -7,21 +7,21 @@ import {
   ScrollView,
   Modal,
   Pressable,
-  TextInput,
   Platform,
 } from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { request } from '../../../utils/api';
 import { formatDate, handleBatchErrors } from '../../../utils';
+import { hapticTap } from '../../../utils/haptics';
 import Feather from 'react-native-vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../../../theme/colors';
 import CalendarModal from '../components/modal/CalendarModal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
-import EmojiPickerModal from '../components/modal/EmojiPickerModal';
 import MainTabHeader from '../components/modal/MainTabHeader';
 import { COMMON_FILTERS, toApiFilter } from '../constants/filters';
 import { AuthContext } from '../../../context/AuthContext';
@@ -67,6 +67,7 @@ function isFutureDate(dateValue) {
 
 export default function HabitTrackerScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const { user } = useContext(AuthContext);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -428,9 +429,13 @@ export default function HabitTrackerScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchHabits();
-  }, []);
+  // Refetch on focus so the list reflects habits added/edited on the
+  // AddHabit page and updates whenever the user returns to this tab.
+  useFocusEffect(
+    useCallback(() => {
+      fetchHabits();
+    }, []),
+  );
 
   const openEditHabit = habit => {
     setEditingHabit(habit);
@@ -611,6 +616,7 @@ export default function HabitTrackerScreen() {
   const onToggleDay = async (habit, dayIndex) => {
     const habitId = habit?.id;
     if (!habitId) return;
+    hapticTap();
 
     const completionDate = getCompletionDateByDayIndex(habit, dayIndex);
     if (!completionDate) return;
@@ -916,12 +922,6 @@ export default function HabitTrackerScreen() {
                         key={`${habit.id}-row-${rowIndex}`}
                         style={styles.gridRow}
                       >
-                        <View style={styles.rowTag}>
-                          <Text style={styles.rowTagText}>
-                            {ordinalLabel(rowIndex)}
-                          </Text>
-                        </View>
-
                         <View style={styles.rowBoxes}>
                           {Array.from({ length: countInRow }).map((__, i) => {
                             const dayIndex = rowStart + i;
@@ -992,7 +992,10 @@ export default function HabitTrackerScreen() {
         </ScrollView>
         <TouchableOpacity
           style={[styles.fab, { bottom: 86 + insets.bottom }]}
-          onPress={openAdd}
+          onPress={() => {
+            hapticTap();
+            navigation.navigate('AddHabit');
+          }}
           activeOpacity={0.9}
         >
           <Text style={styles.fabText}>+</Text>
@@ -1006,181 +1009,6 @@ export default function HabitTrackerScreen() {
           onSelectDate={onSelectDate}
           onClose={closeCalendar}
         />
-        <Modal transparent visible={addOpen} animationType="fade">
-          <Pressable
-            style={styles.modalOverlay}
-            onPress={() => setAddOpen(false)}
-          >
-            <Pressable style={styles.addCard} onPress={() => {}}>
-              <Text style={styles.addTitle}>Add New Habit</Text>
-
-              <Text style={styles.addLabel}>Habit Name</Text>
-              <TextInput
-                value={habitName}
-                onChangeText={text => {
-                  setHabitName(text);
-                  if (errors.title) setErrors(prev => ({ ...prev, title: null }));
-                }}
-                placeholder="e.g. Morning Walk"
-                placeholderTextColor="#9A9A9A"
-                style={[
-                  styles.addInputText,
-                  errors.title && styles.inputErrorBorder,
-                ]}
-              />
-              {errors.title && (
-                <Text style={styles.errorText}>{errors.title}</Text>
-              )}
-
-              <Text style={styles.addLabel}>Habit Icons</Text>
-              <View style={styles.iconBox}>
-                <View style={styles.iconRow}>
-                  <TouchableOpacity style={styles.iconChip} onPress={openEmoji}>
-                    <Text style={styles.iconChipText}>{habitIcon}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.iconChipAdd}
-                    onPress={openEmoji}
-                  >
-                    <Feather name="plus" size={14} color={colors.textPrimary} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <Text style={styles.addLabel}>Frequency</Text>
-              <View style={[styles.freqBox, errors.frequency && styles.inputErrorBorder]}>
-                <View style={styles.freqRow}>
-                  {['Custom', '40 Days'].map(item => (
-                    <TouchableOpacity
-                      key={item}
-                      style={[
-                        styles.freqChip,
-                        frequency === item && styles.freqChipActive,
-                      ]}
-                      onPress={() => {
-                        setFrequency(item);
-                        if (errors.frequency)
-                          setErrors(prev => ({ ...prev, frequency: null }));
-                        if (item === '40 Days') setTotalDays(40);
-                        if (item === 'Custom') {
-                          openCalendarForCustom();
-                        }
-                      }}
-                      activeOpacity={0.85}
-                    >
-                      <Text
-                        style={[
-                          styles.freqText,
-                          frequency === item && styles.freqTextActive,
-                        ]}
-                      >
-                        {item}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              {errors.frequency && (
-                <Text style={styles.errorText}>{errors.frequency}</Text>
-              )}
-
-              <Text style={styles.addLabel}>Start Date</Text>
-              <TouchableOpacity
-                style={styles.addInput}
-                onPress={openCalendarForHabitStart}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.inputHint}>
-                  {habitStartDate.toDateString()}
-                </Text>
-              </TouchableOpacity>
-
-              {frequency === 'Custom' && (
-                <>
-                  <Text style={styles.addLabel}>Custom Date</Text>
-                  <TouchableOpacity
-                    style={styles.addInput}
-                    onPress={openCalendarForCustom}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.inputHint}>
-                      {habitCustomDate.toDateString()}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              <Text style={styles.addLabel}>Choose Color</Text>
-              <View style={styles.colorBox}>
-                <View style={styles.colorRow}>
-                  {[
-                    '#F9D6E5',
-                    '#E9DDF8',
-                    '#DCEAFE',
-                    '#D9F2FA',
-                    '#FBEAAF',
-                    '#FADCC0',
-                    '#F9D4D4',
-                    '#e91e63',
-                    '#9c27b0',
-                    '#3f51b5',
-                    '#2196f3',
-                    '#cddc39',
-                    '#ffeb3b',
-                    '#f44336',
-                    '#ff9800',
-                    '#ffc107',
-                    '#795548'
-                  ].map(c => (
-                    <TouchableOpacity
-                      key={c}
-                      style={[
-                        styles.colorDot,
-                        { backgroundColor: c },
-                        habitColor === c && styles.colorDotActive,
-                      ]}
-                      onPress={() => setHabitColor(c)}
-                      activeOpacity={0.85}
-                    />
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.addActions}>
-                <TouchableOpacity
-                  style={styles.btnGhost}
-                  onPress={() => setAddOpen(false)}
-                >
-                  <Text style={styles.btnGhostText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.btnPrimary}
-                  onPress={editingHabit ? updateHabit : addHabit}
-                >
-                  <Text style={styles.btnPrimaryText}>
-                    {editingHabit ? 'Update Habit' : 'Add Habit'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </Pressable>
-          </Pressable>
-        </Modal>
-
-        <EmojiPickerModal
-          visible={emojiOpen}
-          onClose={() => {
-            setEmojiOpen(false);
-            setTimeout(() => setAddOpen(true), 150);
-          }}
-          onSelect={emoji => {
-            setHabitIcon(emoji);
-            setEmojiOpen(false);
-            setTimeout(() => setAddOpen(true), 150);
-          }}
-        />
-
         <ConfirmationModal
           visible={deleteConfirmVisible}
           title="Delete Habit?"
@@ -1506,7 +1334,7 @@ daysTextRight: {
   progressFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: 'rgba(17,17,17,0.28)',
+    backgroundColor: colors.lightGreen,
   },
   progressPercentPill: {
     backgroundColor: '#BDA795',

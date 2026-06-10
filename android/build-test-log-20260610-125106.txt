@@ -1,0 +1,10 @@
+2026-06-10 12:51:32 - 
+2026-06-10 12:51:32 - Clean successful
+2026-06-10 12:51:38 - 
+2026-06-10 12:51:38 - ERROR: Build failed with code 1
+2026-06-10 12:51:38 - BUILD ERROR: > Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:51:38 - BUILD ERROR: > Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:51:38 - BUILD ERROR: > Task :app:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:51:38 - BUILD ERROR: > Task :app:generateAutolinkingPackageList FAILED
+2026-06-10 12:51:38 - BUILD ERROR: FAILURE: Build failed with an exception.
+2026-06-10 12:51:38 - BUILD ERROR: BUILD FAILED in 5s

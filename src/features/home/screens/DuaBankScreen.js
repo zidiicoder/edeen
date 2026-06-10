@@ -554,7 +554,7 @@ export default function DuaBankScreen() {
   };
 
   const visibleDuas =
-    segmentFilter === 'My Favorite'
+    segmentFilter === 'My Favourite'
       ? DUAS.filter(dua => favoriteIds.includes(dua.id))
       : DUAS;
 
@@ -729,7 +729,7 @@ export default function DuaBankScreen() {
         <Text style={styles.title}>The Dua Bank</Text>
 
         <View style={styles.segmentRow}>
-          {['All Duas', 'My Favorite'].map(item => (
+          {['All Duas', 'My Favourite'].map(item => (
             <TouchableOpacity
               key={item}
               style={[
@@ -753,9 +753,9 @@ export default function DuaBankScreen() {
         <ScrollView
           contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
         >
-          {visibleDuas.length === 0 && segmentFilter === 'My Favorite' ? (
+          {visibleDuas.length === 0 && segmentFilter === 'My Favourite' ? (
             <View style={styles.emptyFavCard}>
-              <Text style={styles.emptyFavTitle}>No favorite duas yet</Text>
+              <Text style={styles.emptyFavTitle}>No favourite duas yet</Text>
               <Text style={styles.emptyFavSub}>
                 Tap the heart icon to save a dua here.
               </Text>

@@ -366,7 +366,10 @@ export default function JournalScreen() {
       />
 
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[
+          styles.container,
+          mode === 'edit' && { backgroundColor: activeMood.bgColor },
+        ]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         {mode === 'edit' && (
@@ -429,7 +432,6 @@ export default function JournalScreen() {
                       >
                         <Text style={styles.moodEmoji}>{option.emoji}</Text>
                       </View>
-                      <Text style={styles.moodLabel}>{option.label}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -597,7 +599,10 @@ export default function JournalScreen() {
               return (
                 <TouchableOpacity
                   key={item.id}
-                  style={styles.listCard}
+                  style={[
+                    styles.listCard,
+                    { backgroundColor: moodOption.bgColor, borderColor: moodOption.iconBg },
+                  ]}
                   activeOpacity={0.9}
                   onPress={() => openEditor(item)}
                 >

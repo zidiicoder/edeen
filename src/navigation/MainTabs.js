@@ -13,7 +13,9 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { hapticTap } from "../utils/haptics";
 import HabitTrackerScreen from "../features/home/screens/HabitTrackerScreen";
+import AddHabitScreen from "../features/home/screens/AddHabitScreen";
 import DuaBankScreen from "../features/home/screens/DuaBankScreen";
 import SalahTrackerScreen from "../features/home/screens/SalahTrackerScreen";
 import JournalScreen from "../features/home/screens/JournalScreen";
@@ -74,6 +76,9 @@ function PillTabBar({ state, descriptors, navigation }) {
     >
       <View style={styles.tabBar}>
         {state.routes.map((route, index) => {
+          // AddHabit is a full page reached from the Habit screen FAB; it keeps
+          // the bottom bar visible but should not appear as its own tab item.
+          if (route.name === "AddHabit") return null;
           const isFocused = state.index === index;
           const { options } = descriptors[route.key];
 
@@ -85,6 +90,7 @@ function PillTabBar({ state, descriptors, navigation }) {
               : route.name;
 
           const onPress = () => {
+            hapticTap();
             const event = navigation.emit({
               type: "tabPress",
               target: route.key,
@@ -167,6 +173,14 @@ export default function MainTabs() {
         name="Journal"
         component={JournalScreen}
         options={{ tabBarLabel: "Journal" }}
+      />
+
+      {/* Hidden from the tab bar (filtered in PillTabBar); opened from the
+          Habit screen "+" button as a full page with the bottom nav visible. */}
+      <Tab.Screen
+        name="AddHabit"
+        component={AddHabitScreen}
+        options={{ tabBarLabel: "Add Habit" }}
       />
     </Tab.Navigator>
   );
