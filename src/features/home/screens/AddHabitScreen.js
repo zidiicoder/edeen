@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
   content: { padding: 16 },
 
   card: {
-    backgroundColor: '#F4C9E4',
+    backgroundColor: '#FBEAAF',
     borderRadius: 18,
     padding: 16,
   },
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#faedcb',
+    backgroundColor: '#FBEAAF',
     alignItems: 'center',
     justifyContent: 'center',
   },
