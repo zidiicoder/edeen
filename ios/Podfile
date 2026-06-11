@@ -8,8 +8,16 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
-# Enable modular headers for Firebase compatibility
-use_modular_headers!
+# NOTE: Do NOT enable `use_modular_headers!` globally. On React Native 0.80 it
+# makes several React runtime pods (React-jsitooling, React-RuntimeApple,
+# React-RCTRuntime) each emit a `react_runtime` modulemap into the same folder,
+# which clang rejects as "Redefinition of module 'react_runtime'" and that
+# poisons every downstream module. Instead, modular headers are enabled only on
+# the Firebase/Google pods that actually need them (see inside the target).
+
+# Build react-native-firebase as a static framework (needed when its Firebase
+# dependencies are consumed as modules without global modular headers).
+$RNFirebaseAsStaticFramework = true
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
@@ -19,6 +27,18 @@ end
 
 target 'edeen' do
   config = use_native_modules!
+
+  # Firebase + its dependencies require modular headers. Apply them ONLY to
+  # these pods (not globally) so the React runtime pods are left alone.
+  pod 'FirebaseCore', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'FirebaseCoreExtension', :modular_headers => true
+  pod 'FirebaseInstallations', :modular_headers => true
+  pod 'FirebaseMessaging', :modular_headers => true
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'GoogleDataTransport', :modular_headers => true
+  pod 'nanopb', :modular_headers => true
+  pod 'PromisesObjC', :modular_headers => true
 
   use_react_native!(
     :path => config[:reactNativePath],
@@ -33,7 +53,7 @@ target 'edeen' do
       config[:reactNativePath],
       :mac_catalyst_enabled => false
     )
-    
+
     # Xcode 16+ compatibility fixes
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
