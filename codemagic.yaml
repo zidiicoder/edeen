@@ -21,7 +21,10 @@ workflows:
           a6lUPBVh
           -----END PRIVATE KEY-----
       node: latest
-      xcode: latest
+      # Pin to the stable Xcode that React Native 0.80 was built/tested against.
+      # "latest" pulls a bleeding-edge Xcode (note Node 26 on the image) whose
+      # clang fails to compile RN 0.80's bundled fmt 11.0.2 (fmt/src/format.cc).
+      xcode: "16.4"
       cocoapods: default
     scripts:
       - name: Install npm dependencies
