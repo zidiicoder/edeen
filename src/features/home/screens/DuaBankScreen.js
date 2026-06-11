@@ -16,7 +16,6 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import colors from '../../../theme/colors';
 import { useNavigation } from '@react-navigation/native';
-import MainTabHeader from '../components/modal/MainTabHeader';
 import CalendarModal from '../components/modal/CalendarModal';
 import { COMMON_FILTERS } from '../constants/filters';
 import { AuthContext } from '../../../context/AuthContext';
@@ -565,14 +564,6 @@ export default function DuaBankScreen() {
         edges={['top', 'bottom']}
       >
         <View style={styles.detailContainer}>
-          <MainTabHeader
-            title={user?.name || 'User'}
-            bg="#CFE4F5"
-            filterLabel={filter}
-            onPressFilter={() => setFilterOpen(true)}
-            onPressBell={() => navigation.navigate('Notifications')}
-            onPressSettings={() => navigation.navigate('Profile')}
-          />
           <Modal visible={filterOpen} transparent animationType="fade">
             <Pressable
               style={styles.modalOverlay}
@@ -663,14 +654,6 @@ export default function DuaBankScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <MainTabHeader
-        title={user?.name || 'User'}
-        bg="#CFE4F5"
-        filterLabel={filter}
-        onPressFilter={() => setFilterOpen(true)}
-        onPressBell={() => navigation.navigate('Notifications')}
-        onPressSettings={() => navigation.navigate('Profile')}
-      />
       <Modal visible={filterOpen} transparent animationType="fade">
         <Pressable
           style={styles.modalOverlay}
