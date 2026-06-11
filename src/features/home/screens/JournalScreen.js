@@ -23,6 +23,7 @@ import CalendarModal from '../components/modal/CalendarModal';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import { toApiDate, toApiFilter } from '../constants/filters';
 import { AuthContext } from '../../../context/AuthContext';
+import { hapticTap } from '../../../utils/haptics';
 
 const MAX_GRATITUDE_ITEMS = 3;
 const SUMMARY_PREVIEW_LIMIT = 90;
@@ -210,6 +211,7 @@ export default function JournalScreen() {
   }, []);
 
   const openEditor = entry => {
+    hapticTap();
     setErrors({});
 
     if (entry) {
@@ -258,6 +260,7 @@ export default function JournalScreen() {
   };
 
   const saveEntry = async () => {
+    hapticTap();
     const pendingListValue = normalizeTag(gratitudeInput);
     const normalizedGratitude = [...gratitudeItems]
       .map(normalizeTag)
@@ -422,7 +425,10 @@ export default function JournalScreen() {
                         selected && styles.moodItemActive,
                       ]}
                       activeOpacity={0.85}
-                      onPress={() => setMood(option.emoji)}
+                      onPress={() => {
+                        hapticTap();
+                        setMood(option.emoji);
+                      }}
                     >
                       <View
                         style={[

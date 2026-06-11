@@ -17,6 +17,7 @@ import TrackingSalahPanel from '../components/tracking/TrackingSalahPanel';
 import TrackingQuranPanel from '../components/tracking/TrackingQuranPanel';
 import CalendarModal from '../components/modal/CalendarModal';
 import { request } from '../../../utils/api';
+import { saveUserLocation } from '../../../utils/notifications';
 import { AuthContext } from '../../../context/AuthContext';
 
 const TRACKER_OPTIONS = [
@@ -247,10 +248,13 @@ export default function SalahTrackerScreen() {
 
       Geolocation.getCurrentPosition(
         position => {
-          setDeviceLocation({
+          const nextLocation = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
-          });
+          };
+          setDeviceLocation(nextLocation);
+          // Persist so Salah check-in notifications can fetch prayer times.
+          saveUserLocation(nextLocation);
           setLocationReady(true);
         },
         error => {

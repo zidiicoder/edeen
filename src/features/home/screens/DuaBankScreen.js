@@ -20,6 +20,7 @@ import { useNavigation } from '@react-navigation/native';
 import CalendarModal from '../components/modal/CalendarModal';
 import { COMMON_FILTERS } from '../constants/filters';
 import { AuthContext } from '../../../context/AuthContext';
+import { hapticTap } from '../../../utils/haptics';
 
 const DUAS = [
   // Morning Adhkar
@@ -577,6 +578,7 @@ export default function DuaBankScreen() {
   const isFavorite = duaId => favoriteIds.includes(duaId);
 
   const toggleFavorite = duaId => {
+    hapticTap();
     setFavoriteIds(prev =>
       prev.includes(duaId) ? prev.filter(id => id !== duaId) : [...prev, duaId],
     );
@@ -749,7 +751,10 @@ export default function DuaBankScreen() {
                 styles.segment,
                 segmentFilter === item && styles.segmentActive,
               ]}
-              onPress={() => setSegmentFilter(item)}
+              onPress={() => {
+                hapticTap();
+                setSegmentFilter(item);
+              }}
             >
               <Text
                 style={[
@@ -783,7 +788,10 @@ export default function DuaBankScreen() {
                 styles.listCard,
                 styles.listCardColors[i % styles.listCardColors.length],
               ]}
-              onPress={() => setSelected(dua)}
+              onPress={() => {
+                hapticTap();
+                setSelected(dua);
+              }}
             >
               <Text style={styles.listText}>{dua.title}</Text>
               <View style={styles.listRightActions}>

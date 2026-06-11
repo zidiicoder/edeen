@@ -6,7 +6,9 @@ import colors from './theme/colors';
 import RootNavigator from './navigation/RootNavigator';
 import {
   createDefaultNotificationChannel,
+  createReminderNotificationChannel,
   displayLocalNotification,
+  rescheduleSavedReminders,
   saveNotification,
 } from './utils/notifications';
 
@@ -15,6 +17,9 @@ export default function App() {
     const initializeFirebase = async () => {
       try {
         await createDefaultNotificationChannel();
+        await createReminderNotificationChannel();
+        // Re-arm any reminders the user enabled (OS clears triggers on reboot).
+        await rescheduleSavedReminders();
 
         const unsubscribeOnMessage = messaging().onMessage(async remoteMessage => {
           try {

@@ -139,6 +139,11 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.listCard}>
+        <RowItem icon="help-circle" text="How to use the app" onPress={() => navigation.navigate('AppInfo')} />
+        <RowItem icon="bell" text="Reminders" onPress={() => navigation.navigate('Reminder')} />
+      </View>
+
+      <View style={styles.listCard}>
         <RowItem icon="share-2" text="Share This App" onPress={() => navigation.navigate('ShareApp')} />
         <RowItem icon="star" text="Rate as 5 Star" onPress={() => navigation.navigate('RateApp')} />
       </View>

@@ -36,45 +36,27 @@ const COLOR_SWATCHES = [
   '#FFE9C7',
 ];
 
-// "Specific Days of the Week" runs on the chosen weekdays across this many days.
+// "Specific Days of Week" runs on the chosen weekdays across this many days.
 const HABIT_PERIOD_DAYS = 40;
 
-const WEEKDAYS = [
-  { key: 'monday', label: 'Mon' },
-  { key: 'tuesday', label: 'Tue' },
-  { key: 'wednesday', label: 'Wed' },
-  { key: 'thursday', label: 'Thu' },
-  { key: 'friday', label: 'Fri' },
-  { key: 'saturday', label: 'Sat' },
-  { key: 'sunday', label: 'Sun' },
-];
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-// Frequency chips: internal value kept as 'Custom'/'40 Days' (matches the
-// backend + validation schema); only the display label changes.
+// Frequency chips: the internal `value` is kept as 'Custom'/'40 Days' so it
+// stays valid against habitSchema + the backend; only the display label changes.
 const FREQUENCY_OPTIONS = [
-  { value: 'Custom', label: 'Specific Days of the Week' },
+  { value: 'Custom', label: 'Specific Days of Week' },
   { value: '40 Days', label: '40 Days' },
 ];
-
-function addDays(date, amount) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + amount);
-  return d;
-}
-
-function normalizeWeekdays(value) {
-  if (Array.isArray(value)) {
-    return value
-      .map(v => String(v).toLowerCase())
-      .filter(v => WEEKDAYS.some(day => day.key === v));
-  }
-  return [];
-}
 
 function startOfDay(value) {
   const d = value ? new Date(value) : new Date();
   d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function addDays(date, amount) {
+  const d = startOfDay(date);
+  d.setDate(d.getDate() + amount);
   return d;
 }
 
@@ -92,8 +74,15 @@ function getMonthDays(date) {
 
 function mapFrequencyFromApi(apiFreq) {
   if (apiFreq === '40_days') return '40 Days';
-  if (apiFreq === 'custom') return 'Specific Days of Week';
+  if (apiFreq === 'custom') return 'Custom';
   return '40 Days';
+}
+
+function normalizeDays(value) {
+  if (Array.isArray(value)) {
+    return value.map(v => String(v)).filter(v => DAY_LABELS.includes(v));
+  }
+  return [];
 }
 
 export default function AddHabitScreen() {
@@ -112,54 +101,44 @@ export default function AddHabitScreen() {
   const [habitStartDate, setHabitStartDate] = useState(() =>
     startOfDay(editingHabit?.start_date),
   );
-  const [habitCustomDate, setHabitCustomDate] = useState(() =>
-    startOfDay(editingHabit?.custom_date || editingHabit?.start_date),
-  );
-  const [selectedDays, setSelectedDays] = useState(
-    editingHabit?.selected_days || [],
-  );
-  const [selectedWeekdays, setSelectedWeekdays] = useState(() =>
-    normalizeWeekdays(editingHabit?.days_of_week),
+  const [selectedDays, setSelectedDays] = useState(() =>
+    normalizeDays(editingHabit?.days_of_week || editingHabit?.selected_days),
   );
 
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [calendarPurpose, setCalendarPurpose] = useState('habitStart');
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const calendarSelectedDate =
-    calendarPurpose === 'habitCustom' ? habitCustomDate : habitStartDate;
-
-  const monthData = useMemo(
-    () => getMonthDays(calendarSelectedDate),
-    [calendarSelectedDate],
+  // The habit always spans HABIT_PERIOD_DAYS days; the end date is derived,
+  // not picked, so "specific days" habits always run for 40 days.
+  const endDate = useMemo(
+    () => addDays(habitStartDate, HABIT_PERIOD_DAYS - 1),
+    [habitStartDate],
   );
+
+  const monthData = useMemo(() => getMonthDays(habitStartDate), [habitStartDate]);
   const monthLabel = useMemo(
-    () => calendarSelectedDate.toLocaleString('default', { month: 'long' }),
-    [calendarSelectedDate],
+    () => habitStartDate.toLocaleString('default', { month: 'long' }),
+    [habitStartDate],
   );
 
-  const openCalendarFor = purpose => {
+  const isSpecificDays = frequency === 'Custom';
+
+  const openCalendar = () => {
     hapticTap();
-    setCalendarPurpose(purpose);
     setCalendarOpen(true);
   };
 
   const onSelectDate = d => {
-    const next = startOfDay(d);
-    if (calendarPurpose === 'habitCustom') {
-      setHabitCustomDate(next);
-    } else {
-      setHabitStartDate(next);
-    }
+    setHabitStartDate(startOfDay(d));
   };
 
-  const toggleWeekday = key => {
+  const toggleDay = label => {
     hapticTap();
     if (errors.frequency) setErrors(prev => ({ ...prev, frequency: null }));
-    setSelectedWeekdays(prev =>
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key],
+    setSelectedDays(prev =>
+      prev.includes(label) ? prev.filter(d => d !== label) : [...prev, label],
     );
   };
 
@@ -175,14 +154,12 @@ export default function AddHabitScreen() {
       return { ...basePayload, frequency: '40_days' };
     }
 
-    if (frequency === 'Specific Days of Week') {
+    if (frequency === 'Custom') {
       return {
         ...basePayload,
         frequency: 'custom',
-        selected_days: selectedDays,
-        custom_date: (habitCustomDate || habitStartDate)
-          .toISOString()
-          .split('T')[0],
+        custom_date: endDate.toISOString().split('T')[0],
+        days_of_week: selectedDays,
       };
     }
 
@@ -197,6 +174,15 @@ export default function AddHabitScreen() {
         { title: habitName?.trim(), frequency },
         { abortEarly: false },
       );
+
+      if (isSpecificDays && selectedDays.length === 0) {
+        setErrors(prev => ({
+          ...prev,
+          frequency: 'Select at least one day of the week.',
+        }));
+        return;
+      }
+
       setLoading(true);
       const payload = buildHabitPayload();
       await request({
@@ -259,13 +245,19 @@ export default function AddHabitScreen() {
             <View style={styles.iconRow}>
               <TouchableOpacity
                 style={styles.iconChip}
-                onPress={() => setEmojiOpen(true)}
+                onPress={() => {
+                  hapticTap();
+                  setEmojiOpen(true);
+                }}
               >
                 <Text style={styles.iconChipText}>{habitIcon}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.iconChipAdd}
-                onPress={() => setEmojiOpen(true)}
+                onPress={() => {
+                  hapticTap();
+                  setEmojiOpen(true);
+                }}
               >
                 <Feather name="plus" size={14} color={colors.textPrimary} />
               </TouchableOpacity>
@@ -277,99 +269,85 @@ export default function AddHabitScreen() {
             style={[styles.freqBox, errors.frequency && styles.inputErrorBorder]}
           >
             <View style={styles.freqRow}>
-              {['Specific Days of Week', '40 Days'].map(item => (
-                <TouchableOpacity
-                  key={item}
-                  style={[
-                    styles.freqChip,
-                    frequency === item && styles.freqChipActive,
-                  ]}
-                  onPress={() => {
-                    setFrequency(item);
-                    if (errors.frequency) {
-                      setErrors(prev => ({ ...prev, frequency: null }));
-                    }
-                    if (item === 'Specific Days of Week') {
-                      openCalendarFor('habitCustom');
-                    }
-                  }}
-                  activeOpacity={0.85}
-                >
-                  <Text
-                    style={[
-                      styles.freqText,
-                      frequency === item && styles.freqTextActive,
-                    ]}
+              {FREQUENCY_OPTIONS.map(option => {
+                const active = frequency === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.freqChip, active && styles.freqChipActive]}
+                    onPress={() => {
+                      hapticTap();
+                      setFrequency(option.value);
+                      if (errors.frequency) {
+                        setErrors(prev => ({ ...prev, frequency: null }));
+                      }
+                    }}
+                    activeOpacity={0.85}
                   >
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[styles.freqText, active && styles.freqTextActive]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
           {errors.frequency ? (
             <Text style={styles.errorText}>{errors.frequency}</Text>
           ) : null}
 
-          {frequency === 'Specific Days of Week' && (
+          {isSpecificDays ? (
             <>
               <Text style={styles.label}>Select Days</Text>
               <View style={styles.daysBox}>
                 <View style={styles.daysRow}>
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                    <TouchableOpacity
-                      key={day}
-                      style={[
-                        styles.dayChip,
-                        selectedDays.includes(day) && styles.dayChipActive,
-                      ]}
-                      onPress={() => {
-                        setSelectedDays(prev =>
-                          prev.includes(day)
-                            ? prev.filter(d => d !== day)
-                            : [...prev, day]
-                        );
-                      }}
-                      activeOpacity={0.85}
-                    >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          selectedDays.includes(day) && styles.dayTextActive,
-                        ]}
+                  {DAY_LABELS.map(day => {
+                    const active = selectedDays.includes(day);
+                    return (
+                      <TouchableOpacity
+                        key={day}
+                        style={[styles.dayChip, active && styles.dayChipActive]}
+                        onPress={() => toggleDay(day)}
+                        activeOpacity={0.85}
                       >
-                        {day}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.dayText,
+                            active && styles.dayTextActive,
+                          ]}
+                        >
+                          {day}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
+              <Text style={styles.helperText}>
+                Runs on the selected days for {HABIT_PERIOD_DAYS} days.
+              </Text>
             </>
-          )}
+          ) : null}
 
           <Text style={styles.label}>Start Date</Text>
           <TouchableOpacity
             style={styles.dateInput}
-            onPress={() => openCalendarFor('habitStart')}
+            onPress={openCalendar}
             activeOpacity={0.85}
           >
             <Text style={styles.dateText}>{habitStartDate.toDateString()}</Text>
             <Feather name="calendar" size={16} color="#7A7A7A" />
           </TouchableOpacity>
 
-          {frequency === 'Specific Days of Week' ? (
+          {isSpecificDays ? (
             <>
-              <Text style={styles.label}>End Date (40 Days from Start)</Text>
-              <TouchableOpacity
-                style={styles.dateInput}
-                onPress={() => openCalendarFor('habitCustom')}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.dateText}>
-                  {habitCustomDate.toDateString()}
-                </Text>
-                <Feather name="calendar" size={16} color="#7A7A7A" />
-              </TouchableOpacity>
+              <Text style={styles.label}>End Date (40 days from start)</Text>
+              <View style={[styles.dateInput, styles.dateInputReadonly]}>
+                <Text style={styles.dateText}>{endDate.toDateString()}</Text>
+                <Feather name="lock" size={14} color="#9A9A9A" />
+              </View>
             </>
           ) : null}
 
@@ -384,7 +362,10 @@ export default function AddHabitScreen() {
                     { backgroundColor: c },
                     habitColor === c && styles.colorDotActive,
                   ]}
-                  onPress={() => setHabitColor(c)}
+                  onPress={() => {
+                    hapticTap();
+                    setHabitColor(c);
+                  }}
                   activeOpacity={0.85}
                 />
               ))}
@@ -422,7 +403,7 @@ export default function AddHabitScreen() {
         visible={calendarOpen}
         monthLabel={monthLabel}
         monthData={monthData}
-        selectedDate={calendarSelectedDate}
+        selectedDate={habitStartDate}
         onSelectDate={onSelectDate}
         onClose={() => setCalendarOpen(false)}
       />
@@ -473,6 +454,7 @@ const styles = StyleSheet.create({
   },
 
   label: { marginTop: 12, fontSize: 13, fontWeight: '600', color: colors.textPrimary },
+  helperText: { marginTop: 6, fontSize: 11, color: '#6B6B6B' },
 
   inputText: {
     marginTop: 8,
@@ -550,7 +532,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  daysRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'space-between' },
+  daysRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
   dayChip: {
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
@@ -577,6 +564,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E3E3E3',
   },
+  dateInputReadonly: { backgroundColor: '#F4F4F4' },
   dateText: { fontSize: 13, color: colors.textPrimary },
 
   colorBox: {

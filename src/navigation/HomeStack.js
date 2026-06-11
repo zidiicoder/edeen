@@ -14,12 +14,21 @@ import ContactScreen from '../features/profile/screens/ContactScreen';
 import TermsScreen from '../features/profile/screens/TermsScreen';
 import PrivacyScreen from '../features/profile/screens/PrivacyScreen';
 import ChangePasswordScreen from '../features/profile/screens/ChangePasswordScreen';
+import AppInfoScreen from '../features/onboarding/screens/AppInfoScreen';
 
 const Stack = createNativeStackNavigator();
 
 export default function HomeStack() {
   return (
-    <Stack.Navigator initialRouteName="HomeStart" screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      initialRouteName="HomeStart"
+      screenOptions={{
+        headerShown: false,
+        // Swipe-back returns to the correct previous screen in the stack.
+        gestureEnabled: true,
+        fullScreenGestureEnabled: true,
+      }}
+    >
         <Stack.Screen name="HomeStart" component={HomeStartScreen} />
         <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen name="Home" component={HomeScreen} />
@@ -34,6 +43,7 @@ export default function HomeStack() {
         <Stack.Screen name="Terms" component={TermsScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+        <Stack.Screen name="AppInfo" component={AppInfoScreen} />
     </Stack.Navigator>
   );
 }
