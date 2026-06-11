@@ -764,6 +764,7 @@ export default function DuaBankScreen() {
         </View>
 
         <ScrollView
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
         >
           {visibleDuas.length === 0 && segmentFilter === 'My Favourite Duas' ? (
