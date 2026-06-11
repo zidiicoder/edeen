@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import colors from '../../../theme/colors';
@@ -538,6 +539,35 @@ export default function DuaBankScreen() {
     return d;
   });
   const [favoriteIds, setFavoriteIds] = useState([]);
+
+  // Load favorites from AsyncStorage on mount
+  useEffect(() => {
+    const loadFavorites = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('favoriteDuas');
+        if (stored) {
+          setFavoriteIds(JSON.parse(stored));
+        }
+      } catch (error) {
+        console.log('Error loading favorites:', error);
+      }
+    };
+    loadFavorites();
+  }, []);
+
+  // Save favorites to AsyncStorage whenever they change
+  useEffect(() => {
+    const saveFavorites = async () => {
+      try {
+        await AsyncStorage.setItem('favoriteDuas', JSON.stringify(favoriteIds));
+      } catch (error) {
+        console.log('Error saving favorites:', error);
+      }
+    };
+    if (favoriteIds.length > 0 || favoriteIds.length === 0) {
+      saveFavorites();
+    }
+  }, [favoriteIds]);
   const monthData = getMonthDays(selectedDate);
   const monthLabel = selectedDate.toLocaleString('default', {
     month: 'long',
@@ -553,7 +583,7 @@ export default function DuaBankScreen() {
   };
 
   const visibleDuas =
-    segmentFilter === 'My Favourite'
+    segmentFilter === 'My Favourite Duas'
       ? DUAS.filter(dua => favoriteIds.includes(dua.id))
       : DUAS;
 
@@ -712,7 +742,7 @@ export default function DuaBankScreen() {
         <Text style={styles.title}>The Dua Bank</Text>
 
         <View style={styles.segmentRow}>
-          {['All Duas', 'My Favourite'].map(item => (
+          {['All Duas', 'My Favourite Duas'].map(item => (
             <TouchableOpacity
               key={item}
               style={[
@@ -736,7 +766,7 @@ export default function DuaBankScreen() {
         <ScrollView
           contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
         >
-          {visibleDuas.length === 0 && segmentFilter === 'My Favourite' ? (
+          {visibleDuas.length === 0 && segmentFilter === 'My Favourite Duas' ? (
             <View style={styles.emptyFavCard}>
               <Text style={styles.emptyFavTitle}>No favourite duas yet</Text>
               <Text style={styles.emptyFavSub}>
@@ -793,7 +823,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginTop: 16,
   },
-  segmentRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  segmentRow: { flexDirection: 'row', gap: 10, marginTop: 10, marginBottom: 20 },
   segment: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
