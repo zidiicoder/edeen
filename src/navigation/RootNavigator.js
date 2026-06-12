@@ -10,6 +10,7 @@ import HomeStack from './HomeStack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import VerifyOTPScreen from '../features/auth/screens/VerifyOTPScreen';
 import ForgotPasswordChangeScreen from '../features/auth/screens/ForgotPasswordChangeScreen';
+import AppInfoScreen from '../features/onboarding/screens/AppInfoScreen';
 import {
   View,
   ActivityIndicator,
@@ -41,26 +42,18 @@ function AuthStack() {
 
 export default function RootNavigator() {
   const [loading, setLoading] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [appInfoSeen, setAppInfoSeen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const checkAppState = async () => {
       try {
-        const splashValue = await AsyncStorage.getItem(
-          'isShowSplashScreen'
-        );
+        // First-launch "How to use" onboarding is shown before login.
+        const appInfoValue = await AsyncStorage.getItem('appInfoSeen');
+        setAppInfoSeen(appInfoValue === 'true');
 
-        if (splashValue !== 'true') {
-          setShowOnboarding(true);
-        }
         const token = await AsyncStorage.getItem('access_token');
-
-        if (token) {
-          setIsLoggedIn(true);
-        } else {
-          setIsLoggedIn(false);
-        }
+        setIsLoggedIn(Boolean(token));
       } catch (error) {
         console.log('Error:', error);
       } finally {
@@ -85,11 +78,13 @@ export default function RootNavigator() {
     );
   }
 
-  const initialRouteName = showOnboarding
-    ? 'Onboarding'
-    : isLoggedIn
-      ? 'Main'
-      : 'Auth';
+  // First launch: show the "How to use" onboarding before the login/sign-up
+  // page. Once seen (or skipped), go straight to Auth. Logged-in users go Main.
+  const initialRouteName = isLoggedIn
+    ? 'Main'
+    : appInfoSeen
+      ? 'Auth'
+      : 'AppInfo';
 
   return (
     <AuthProvider>
@@ -98,6 +93,11 @@ export default function RootNavigator() {
           initialRouteName={initialRouteName}
           screenOptions={{ headerShown: false }}
         >
+          <Stack.Screen
+            name="AppInfo"
+            component={AppInfoScreen}
+            initialParams={{ preAuth: true }}
+          />
           <Stack.Screen
             name="Onboarding"
             component={OnboardingStack}

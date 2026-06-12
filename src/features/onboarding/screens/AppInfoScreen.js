@@ -88,6 +88,22 @@ export default function AppInfoScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const isFirstRun = Boolean(route.params?.firstRun);
+  // Shown before auth on first launch: finishing/skipping goes to Login.
+  const isPreAuth = Boolean(route.params?.preAuth);
+
+  // Where to go when leaving onboarding:
+  //  - pre-login first run  -> Auth (Login)
+  //  - post-login first run -> Main tabs
+  //  - opened from Profile  -> back to Profile
+  const exitOnboarding = () => {
+    if (isPreAuth) {
+      navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+    } else if (isFirstRun) {
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    } else {
+      navigation.goBack();
+    }
+  };
 
   const totalSteps = INFO_SLIDES.length + QUIZ.length;
   const [step, setStep] = useState(0);
@@ -130,11 +146,7 @@ export default function AppInfoScreen() {
       console.log('AppInfo finish error:', error);
     } finally {
       setSaving(false);
-      if (isFirstRun) {
-        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
-      } else {
-        navigation.goBack();
-      }
+      exitOnboarding();
     }
   };
 
@@ -150,7 +162,7 @@ export default function AppInfoScreen() {
   const onBack = () => {
     hapticTap();
     if (step === 0) {
-      navigation.goBack();
+      exitOnboarding();
       return;
     }
     setStep(prev => Math.max(prev - 1, 0));
@@ -159,11 +171,7 @@ export default function AppInfoScreen() {
   const onSkip = async () => {
     hapticTap();
     await AsyncStorage.setItem(APP_INFO_SEEN_KEY, 'true');
-    if (isFirstRun) {
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
-    } else {
-      navigation.goBack();
-    }
+    exitOnboarding();
   };
 
   const selectOption = option => {

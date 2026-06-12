@@ -11,26 +11,10 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 const { width } = Dimensions.get('window');
 
 export default function HomeStartScreen() {
   const navigation = useNavigation();
-
-  // First-time users see the app-info onboarding + tailoring quiz; afterwards
-  // "Start Now" goes straight to the main tabs.
-  const handleStart = async () => {
-    try {
-      const seen = await AsyncStorage.getItem('appInfoSeen');
-      if (seen !== 'true') {
-        navigation.navigate('AppInfo', { firstRun: true });
-        return;
-      }
-    } catch (error) {
-      console.log('AppInfo gate error:', error);
-    }
-    navigation.navigate('MainTabs');
-  };
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -61,7 +45,7 @@ export default function HomeStartScreen() {
           <TouchableOpacity
             activeOpacity={0.85}
             style={styles.cta}
-            onPress={handleStart}
+            onPress={() => navigation.navigate('MainTabs')}
           >
             <Text style={styles.ctaText}>Start Now</Text>
           </TouchableOpacity>
