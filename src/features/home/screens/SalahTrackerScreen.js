@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
-import Geolocation from 'react-native-geolocation-service';
+import Geolocation from '@react-native-community/geolocation';
 import colors from '../../../theme/colors';
 import TrackerModeTabs from '../components/tracking/TrackerModeTabs';
 import TrackingSalahPanel from '../components/tracking/TrackingSalahPanel';

@@ -40,10 +40,11 @@ target 'edeen' do
   pod 'nanopb', :modular_headers => true
   pod 'PromisesObjC', :modular_headers => true
 
+  # RN 0.83 runs on the New Architecture (Fabric + TurboModules).
   use_react_native!(
     :path => config[:reactNativePath],
     :hermes_enabled => true,
-    :fabric_enabled => false,
+    :fabric_enabled => true,
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
