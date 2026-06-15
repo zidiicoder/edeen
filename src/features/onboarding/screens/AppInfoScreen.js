@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
@@ -20,31 +21,31 @@ const USER_PREFERENCES_KEY = 'userPreferences';
 // Info slides: purpose of the app + how to use each section.
 const INFO_SLIDES = [
   {
-    icon: 'sunrise',
+    image: require('../../../assets/images/Edeen (1) (1).png'),
     badge: '#FBEAAF',
     title: 'Welcome to EDeen',
     body: 'EDeen helps you build meaningful Islamic habits over 40 days — tracking prayers, duas, daily habits and reflections, all in one calm space.',
   },
   {
-    icon: 'check-circle',
+    image: require('../../../assets/navigation/habbit.png'),
     badge: '#F4C9E4',
     title: 'Habit Tracker',
     body: 'Create a habit, choose 40 Days or specific days of the week, and check off each day. Watch your light-green progress bar fill as your streak grows.',
   },
   {
-    icon: 'book',
+    image: require('../../../assets/navigation/dua.png'),
     badge: '#DCEAFE',
     title: 'Dua Bank',
     body: 'Browse morning and evening adhkar and daily duas. Tap the heart to save your favourites and find them under “My Favourite Duas”.',
   },
   {
-    icon: 'moon',
+    image: require('../../../assets/navigation/salah.jpg'),
     badge: '#D9F2FA',
     title: 'Salah Tracker',
     body: 'Keep track of your five daily prayers and stay consistent. Your location helps show accurate prayer times.',
   },
   {
-    icon: 'edit-3',
+    image: require('../../../assets/navigation/journal.png'),
     badge: '#DFF4E4',
     title: 'Journal',
     body: 'Reflect on your day, pick how you feel, and the journal adapts its colours to your mood. Look back on your entries anytime.',
@@ -219,7 +220,11 @@ export default function AppInfoScreen() {
         {!isQuizStep ? (
           <View style={styles.slide}>
             <View style={[styles.iconWrap, { backgroundColor: slide.badge }]}>
-              <Feather name={slide.icon} size={40} color={colors.textPrimary} />
+              <Image 
+                source={slide.image} 
+                style={styles.slideImage}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.slideTitle}>{slide.title}</Text>
             <Text style={styles.slideBody}>{slide.body}</Text>
@@ -313,6 +318,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 28,
+  },
+  slideImage: {
+    width: 70,
+    height: 70,
   },
   slideTitle: {
     fontSize: 24,
