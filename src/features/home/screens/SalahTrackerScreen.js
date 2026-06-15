@@ -7,8 +7,6 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Alert,
-  Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
@@ -144,7 +142,6 @@ export default function SalahTrackerScreen() {
   const [activeTracker, setActiveTracker] = useState('salah');
   const [deviceLocation, setDeviceLocation] = useState(null);
   const [locationReady, setLocationReady] = useState(false);
-  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const [selectedMonthDate] = useState(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -273,12 +270,10 @@ export default function SalahTrackerScreen() {
       
       if (!hasPermission) {
         console.log('[SalahTracker] Location permission denied, using fallback');
-        setLocationPermissionDenied(true);
         setLocationReady(true);
         return;
       }
 
-      setLocationPermissionDenied(false);
       console.log('[SalahTracker] Requesting GPS position...');
       Geolocation.getCurrentPosition(
         position => {
@@ -313,77 +308,6 @@ export default function SalahTrackerScreen() {
       ...prev,
       [key]: value,
     }));
-  };
-
-  const handleRequestLocation = async () => {
-    console.log('[SalahTracker] Manual location request triggered');
-    setLocationReady(false);
-    setLocationPermissionDenied(false);
-    
-    const hasPermission = await requestLocationPermission();
-    console.log('[SalahTracker] Manual permission result:', hasPermission);
-    
-    if (!hasPermission) {
-      console.log('[SalahTracker] Permission denied');
-      setLocationPermissionDenied(true);
-      setLocationReady(true);
-      
-      // Check if we should direct user to settings
-      const checkResult = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      );
-      
-      // If permission is still not granted, show alert to go to settings
-      if (!checkResult) {
-        Alert.alert(
-          'Location Permission Required',
-          'Edeen needs location access to show accurate prayer times. Please enable location permission in Settings.',
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-            {
-              text: 'Open Settings',
-              onPress: () => {
-                Linking.openSettings();
-              },
-            },
-          ],
-        );
-      }
-      return;
-    }
-
-    console.log('[SalahTracker] Getting GPS position...');
-    Geolocation.getCurrentPosition(
-      position => {
-        const nextLocation = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-        console.log('[SalahTracker] GPS position obtained:', nextLocation);
-        setDeviceLocation(nextLocation);
-        saveUserLocation(nextLocation);
-        setLocationReady(true);
-        setLocationPermissionDenied(false);
-      },
-      error => {
-        console.log('[SalahTracker] Location error:', error);
-        setLocationReady(true);
-        
-        Alert.alert(
-          'Location Error',
-          'Unable to get your location. Please make sure location services are enabled and try again.',
-          [{ text: 'OK' }],
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 10000,
-      },
-    );
   };
 
     const getCurrentSalahTime = useCallback(async () => {
@@ -486,25 +410,6 @@ export default function SalahTrackerScreen() {
               </View>
               <Text style={styles.heroDateText}>{possibleSalahDate}</Text>
             </View>
-
-            {isUsingFallbackLocation && (
-              <View style={styles.locationWarning}>
-                <Text style={styles.locationWarningText}>
-                  {locationPermissionDenied 
-                    ? '⚠️ Location access denied. Grant permission for accurate prayer times.'
-                    : '⚠️ Using default location (Karachi). Enable location permission for accurate prayer times.'}
-                </Text>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.enableLocationButton}
-                  onPress={handleRequestLocation}
-                >
-                  <Text style={styles.enableLocationButtonText}>
-                    📍 Enable Location
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
 
             <Text style={styles.locationDebugText}>
               📍 Location: {locationSource}
@@ -684,35 +589,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#6C8190',
-  },
-  locationWarning: {
-    marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,165,0,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,165,0,0.3)',
-  },
-  locationWarningText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#D97706',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  enableLocationButton: {
-    backgroundColor: '#3D7FB6',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignSelf: 'center',
-    marginTop: 4,
-  },
-  enableLocationButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
   },
   locationDebugText: {
     marginTop: 6,
