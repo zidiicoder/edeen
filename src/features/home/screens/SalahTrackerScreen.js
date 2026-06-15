@@ -7,6 +7,7 @@ import {
   Text,
   View,
   TouchableOpacity,
+  NativeModules,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
@@ -143,6 +144,7 @@ export default function SalahTrackerScreen() {
   const [activeTracker, setActiveTracker] = useState('salah');
   const [deviceLocation, setDeviceLocation] = useState(null);
   const [locationReady, setLocationReady] = useState(false);
+  const [locationServicesEnabled, setLocationServicesEnabled] = useState(null); // null = checking, true = enabled, false = disabled
   const [selectedMonthDate] = useState(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -250,6 +252,49 @@ export default function SalahTrackerScreen() {
       return false;
     }
   };
+
+  const checkLocationServicesEnabled = () => {
+    return new Promise((resolve) => {
+      if (Platform.OS === 'ios') {
+        resolve(true);
+        return;
+      }
+
+      // For Android, we'll use Geolocation to check if location services are enabled
+      // by attempting to get the current position with a very short timeout
+      const timeoutId = setTimeout(() => {
+        console.log('[SalahTracker] Location services check timed out');
+        resolve(false);
+      }, 2000);
+
+      Geolocation.getCurrentPosition(
+        (position) => {
+          clearTimeout(timeoutId);
+          console.log('[SalahTracker] Location services are enabled');
+          resolve(true);
+        },
+        (error) => {
+          clearTimeout(timeoutId);
+          console.log('[SalahTracker] Location services error:', error);
+          // Error code 2 means location services are disabled
+          // Error code 1 means permission denied (but services are on)
+          // Error code 3 means timeout
+          if (error.code === 2) {
+            console.log('[SalahTracker] Location services are DISABLED');
+            resolve(false);
+          } else {
+            console.log('[SalahTracker] Location services are enabled (error is not about services)');
+            resolve(true);
+          }
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 1000,
+          maximumAge: 0,
+        },
+      );
+    });
+  };
   
   useEffect(() => {
     const timer = setInterval(() => setTick(Date.now()), 60000);
@@ -259,15 +304,27 @@ export default function SalahTrackerScreen() {
   useFocusEffect(
     useCallback(() => {
       const loadLocation = async () => {
-        console.log('[SalahTracker] Screen focused - checking location permission...');
+        console.log('[SalahTracker] Screen focused - checking location services...');
         
         if (route?.params?.latitude && route?.params?.longitude) {
           console.log('[SalahTracker] Using route params:', route.params.latitude, route.params.longitude);
+          setLocationServicesEnabled(true);
           setLocationReady(true);
           return;
         }
 
-        // Check if permission is already granted
+        // Step 1: Check if location services are enabled on device
+        const servicesEnabled = await checkLocationServicesEnabled();
+        console.log('[SalahTracker] Location services enabled:', servicesEnabled);
+        setLocationServicesEnabled(servicesEnabled);
+
+        if (!servicesEnabled) {
+          console.log('[SalahTracker] Location services are DISABLED - not showing prayer times');
+          setLocationReady(false); // Keep loading state
+          return;
+        }
+
+        // Step 2: Location services are enabled, now check permission
         const alreadyGranted = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         );
@@ -290,7 +347,7 @@ export default function SalahTrackerScreen() {
             },
             error => {
               console.log('[SalahTracker] Location error:', error);
-              setLocationReady(true);
+              setLocationReady(true); // Show fallback times
             },
             {
               enableHighAccuracy: true,
@@ -301,16 +358,17 @@ export default function SalahTrackerScreen() {
           return;
         }
 
-        // Permission not granted, request it
+        // Step 3: Permission not granted, request it
         const hasPermission = await requestLocationPermission();
         console.log('[SalahTracker] Permission request result:', hasPermission);
         
         if (!hasPermission) {
           console.log('[SalahTracker] Location permission denied, using fallback');
-          setLocationReady(true);
+          setLocationReady(true); // Show fallback Karachi times
           return;
         }
 
+        // Step 4: Permission just granted, fetch location
         console.log('[SalahTracker] Requesting GPS position after permission granted...');
         Geolocation.getCurrentPosition(
           position => {
@@ -325,7 +383,7 @@ export default function SalahTrackerScreen() {
           },
           error => {
             console.log('[SalahTracker] Location error:', error);
-            setLocationReady(true);
+            setLocationReady(true); // Show fallback times
           },
           {
             enableHighAccuracy: true,
@@ -335,6 +393,10 @@ export default function SalahTrackerScreen() {
         );
       };
 
+      // Reset states when screen focuses
+      setLocationReady(false);
+      setLocationServicesEnabled(null);
+      
       loadLocation();
     }, [route?.params?.latitude, route?.params?.longitude])
   );
@@ -427,10 +489,24 @@ export default function SalahTrackerScreen() {
               <View style={styles.heroStarMedium} />
               <View style={styles.heroGlow} />
             </View>
-            <View style={styles.salahLabelSkeleton} />
-            <View style={styles.salahNameSkeleton} />
-            <View style={styles.salahValueSkeleton} />
-            <View style={styles.salahNextSkeleton} />
+            {locationServicesEnabled === false ? (
+              <>
+                <Text style={styles.currentSalahLabel}>Location Services Disabled</Text>
+                <Text style={styles.locationServicesMessage}>
+                  Please enable location services in your device settings to see accurate prayer times for your area.
+                </Text>
+                <Text style={styles.locationServicesSteps}>
+                  Settings → Location → Turn ON
+                </Text>
+              </>
+            ) : (
+              <>
+                <View style={styles.salahLabelSkeleton} />
+                <View style={styles.salahNameSkeleton} />
+                <View style={styles.salahValueSkeleton} />
+                <View style={styles.salahNextSkeleton} />
+              </>
+            )}
           </View>
         ) : hasSalahTimeData ? (
           <View style={styles.currentSalahCard}>
@@ -639,6 +715,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#5E7282',
+  },
+  locationServicesMessage: {
+    marginTop: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#5E7282',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  locationServicesSteps: {
+    marginTop: 12,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#3D7FB6',
+    textAlign: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(61,127,182,0.1)',
+    borderRadius: 8,
+    alignSelf: 'center',
   },
   currentSalahName: {
     marginTop: 3,
