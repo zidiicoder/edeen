@@ -1,0 +1,11 @@
+2026-06-10 12:20:18 - 
+2026-06-10 12:20:18 - ERROR: Clean failed
+2026-06-10 12:20:18 - ERROR: > Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:20:18 - ERROR: > Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:20:18 - ERROR: FAILURE: Build failed with an exception.
+2026-06-10 12:28:57 - 
+2026-06-10 12:28:57 - Build successful - Duration: 8.64206056833333 minutes
+2026-06-10 12:28:57 - APK: app/build/outputs/apk/release/app-release.apk - Size: 68.0906419754028 MB
+2026-06-10 12:28:57 - Native libraries count: 208
+2026-06-10 12:28:57 - Found: libhermes.so
+2026-06-10 12:28:57 - APK copied to: E:\edeen\android\..\edeen-Release-20260610-122857.apk

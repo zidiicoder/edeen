@@ -1,0 +1,17 @@
+2026-06-10 12:02:06 - Build and Test Started
+2026-06-10 12:02:06 - Project directory: E:\edeen
+2026-06-10 12:02:06 - Node.js: v24.15.0
+2026-06-10 12:02:06 - Java: openjdk version "17.0.19" 2026-04-21 LTS
+2026-06-10 12:02:06 - ANDROID_HOME: C:\Users\Faithman\AppData\Local\Android\Sdk
+2026-06-10 12:02:06 - ADB: Android Debug Bridge version 1.0.41
+2026-06-10 12:02:06 - Connected devices: 1
+2026-06-10 12:02:06 - 
+2026-06-10 12:02:06 - React Native version: 0.75.5
+2026-06-10 12:02:10 - node_modules size: 385.951782226563 MB
+2026-06-10 12:02:10 - Hermes enabled
+2026-06-10 12:02:10 - Version Code: 5
+2026-06-10 12:02:10 - Version Name: 1.5
+2026-06-10 12:20:18 - WARNING: No APK to install
+2026-06-10 12:20:18 - 
+2026-06-10 12:20:18 - ERROR: App launch failed - Starting: Intent { cmp=com.edeen/.MainActivity } Error type 3 Error: Activity class {com.edeen/com.edeen.MainActivity} does not exist.
+2026-06-10 12:20:18 - Build and Test Completed - Errors: 32, Warnings: 3

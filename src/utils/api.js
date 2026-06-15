@@ -2,8 +2,12 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// New backend (Laravel) on edeenapp.co.uk. The web root points at the Laravel
+// `public/` folder, so the API lives under `/api/`. HTTPS is enabled on the
+// domain (the server 301-redirects plain http -> https), which is also required
+// by iOS App Transport Security.
 const api = axios.create({
-  baseURL: "https://edeen.innovationpixel.com/public/api/",
+  baseURL: "https://edeenapp.co.uk/api/",
   headers: {
     Accept: "application/json",
   },

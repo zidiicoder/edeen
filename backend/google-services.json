@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "905355327727",
+    "project_id": "edeen-38edc",
+    "storage_bucket": "edeen-38edc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:905355327727:android:0fa89cc3ec4d6da040831a",
+        "android_client_info": {
+          "package_name": "com.edeen"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArbvM3Xz1lt8qFb4r7K5cCGzaMfpiKT6o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

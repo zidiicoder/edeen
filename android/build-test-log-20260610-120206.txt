@@ -1,0 +1,34 @@
+2026-06-10 12:02:16 - 
+2026-06-10 12:02:16 - Clean successful
+2026-06-10 12:20:17 - 
+2026-06-10 12:20:17 - ERROR: Build failed with code 1
+2026-06-10 12:20:17 - BUILD ERROR: > Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:20:17 - BUILD ERROR: > Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:20:17 - BUILD ERROR: > Task :app:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:20:17 - BUILD ERROR: android\app\build\generated\assets\createBundleReleaseJsAndAssets\index.android.bundle:2490:12: warning: the variable "_WORKLET" was not declared in function "registerReanimatedError"
+2026-06-10 12:20:17 - BUILD ERROR: android\app\build\generated\assets\createBundleReleaseJsAndAssets\index.android.bundle:8693:7: warning: the variable "setTimeout" was not declared in function "logCapturedError"
+2026-06-10 12:20:17 - BUILD ERROR: > Task :react-native-gesture-handler:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:20:17 - BUILD ERROR: > Task :react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:20:17 - BUILD ERROR: > Task :react-native-screens:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:20:17 - BUILD ERROR: > Task :react-native-webview:checkKotlinGradlePluginConfigurationErrors
+2026-06-10 12:20:17 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/SubResourceErrorEvent.kt:5:44 'RCTEventEmitter' is deprecated. Deprecated in Java
+2026-06-10 12:20:17 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/SubResourceErrorEvent.kt:11:3 'constructor Event<T : Event<(raw) Event<*>>!>(Int)' is deprecated. Deprecated in Java
+2026-06-10 12:20:17 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/SubResourceErrorEvent.kt:22:42 'RCTEventEmitter' is deprecated. Deprecated in Java
+2026-06-10 12:20:17 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/SubResourceErrorEvent.kt:23:21 'receiveEvent(Int, String!, WritableMap?): Unit' is deprecated. Deprecated in Java
+2026-06-10 12:20:17 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/TopHttpErrorEvent.kt:5:44 'RCTEventEmitter' is deprecated. Deprecated in Java
+2026-06-10 12:20:17 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/TopHttpErrorEvent.kt:11:3 'constructor Event<T : Event<(raw) Event<*>>!>(Int)' is deprecated. Deprecated in Java
+2026-06-10 12:20:17 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/TopHttpErrorEvent.kt:22:42 'RCTEventEmitter' is deprecated. Deprecated in Java
+2026-06-10 12:20:17 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/TopHttpErrorEvent.kt:23:21 'receiveEvent(Int, String!, WritableMap?): Unit' is deprecated. Deprecated in Java
+2026-06-10 12:20:17 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/TopLoadingErrorEvent.kt:5:44 'RCTEventEmitter' is deprecated. Deprecated in Java
+2026-06-10 12:20:17 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/TopLoadingErrorEvent.kt:11:3 'constructor Event<T : Event<(raw) Event<*>>!>(Int)' is deprecated. Deprecated in Java
+2026-06-10 12:20:18 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/TopLoadingErrorEvent.kt:22:42 'RCTEventEmitter' is deprecated. Deprecated in Java
+2026-06-10 12:20:18 - BUILD ERROR: w: file:///E:/edeen/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/events/TopLoadingErrorEvent.kt:23:21 'receiveEvent(Int, String!, WritableMap?): Unit' is deprecated. Deprecated in Java
+2026-06-10 12:20:18 - BUILD ERROR: > Task :react-native-screens:configureCMakeRelWithDebInfo[armeabi-v7a] FAILED
+2026-06-10 12:20:18 - BUILD ERROR: FAILURE: Build failed with an exception.
+2026-06-10 12:20:18 - BUILD ERROR: Execution failed for task ':react-native-screens:configureCMakeRelWithDebInfo[armeabi-v7a]'.
+2026-06-10 12:20:18 - BUILD ERROR: > [CXX1429] error when building with cmake using E:\edeen\node_modules\react-native-screens\android\CMakeLists.txt: C++ build system [prefab] failed while executing:
+2026-06-10 12:20:18 - BUILD ERROR:  : com.android.ide.common.process.ProcessException: C++ build system [prefab] failed while executing:
+2026-06-10 12:20:18 - BUILD ERROR:   	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+2026-06-10 12:20:18 - BUILD ERROR:   Caused by: com.android.ide.common.process.ProcessException: Error while executing process E:\edeen\node_modules\react-native-screens\android\build\intermediates\cxx\RelWithDebInfo\466n2c24\logs\armeabi-v7a\prefab_command.bat with arguments {}
+2026-06-10 12:20:18 - BUILD ERROR: BUILD FAILED in 17m 59s
+2026-06-10 12:20:18 - WARNING: Task execution failure
