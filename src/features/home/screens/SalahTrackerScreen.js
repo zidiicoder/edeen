@@ -263,33 +263,38 @@ export default function SalahTrackerScreen() {
       // For Android, we'll use Geolocation to check if location services are enabled
       // by attempting to get the current position with a very short timeout
       const timeoutId = setTimeout(() => {
-        console.log('[SalahTracker] Location services check timed out');
+        console.log('[SalahTracker] Location services check timed out - services likely disabled');
         resolve(false);
-      }, 2000);
+      }, 3000);
 
       Geolocation.getCurrentPosition(
         (position) => {
           clearTimeout(timeoutId);
-          console.log('[SalahTracker] Location services are enabled');
+          console.log('[SalahTracker] Location services are enabled - got position');
           resolve(true);
         },
         (error) => {
           clearTimeout(timeoutId);
-          console.log('[SalahTracker] Location services error:', error);
-          // Error code 2 means location services are disabled
-          // Error code 1 means permission denied (but services are on)
-          // Error code 3 means timeout
+          console.log('[SalahTracker] Location services error code:', error.code, 'message:', error.message);
+          // Error code 2 (POSITION_UNAVAILABLE) means location services are disabled
+          // Error code 1 (PERMISSION_DENIED) means permission denied but services might be on
+          // Error code 3 (TIMEOUT) means services are on but took too long
           if (error.code === 2) {
-            console.log('[SalahTracker] Location services are DISABLED');
+            console.log('[SalahTracker] Location services are DISABLED (error code 2)');
+            resolve(false);
+          } else if (error.code === 1) {
+            // Permission denied - but we need to check if services are actually on
+            // This could mean services are off OR permission is denied
+            console.log('[SalahTracker] Permission denied or services off (error code 1)');
             resolve(false);
           } else {
-            console.log('[SalahTracker] Location services are enabled (error is not about services)');
+            console.log('[SalahTracker] Location services appear to be enabled (error code', error.code, ')');
             resolve(true);
           }
         },
         {
           enableHighAccuracy: false,
-          timeout: 1000,
+          timeout: 2000,
           maximumAge: 0,
         },
       );
@@ -313,63 +318,41 @@ export default function SalahTrackerScreen() {
           return;
         }
 
-        // Step 1: Check if location services are enabled on device
-        const servicesEnabled = await checkLocationServicesEnabled();
-        console.log('[SalahTracker] Location services enabled:', servicesEnabled);
-        setLocationServicesEnabled(servicesEnabled);
-
-        if (!servicesEnabled) {
-          console.log('[SalahTracker] Location services are DISABLED - not showing prayer times');
-          setLocationReady(false); // Keep loading state
-          return;
-        }
-
-        // Step 2: Location services are enabled, now check permission
+        // Step 1: First check if we already have permission
         const alreadyGranted = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         );
         
         console.log('[SalahTracker] Permission already granted:', alreadyGranted);
 
-        if (alreadyGranted) {
-          // Permission already granted, fetch location directly
-          console.log('[SalahTracker] Requesting GPS position...');
-          Geolocation.getCurrentPosition(
-            position => {
-              const nextLocation = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-              };
-              console.log('[SalahTracker] GPS position obtained:', nextLocation);
-              setDeviceLocation(nextLocation);
-              saveUserLocation(nextLocation);
-              setLocationReady(true);
-            },
-            error => {
-              console.log('[SalahTracker] Location error:', error);
-              setLocationReady(true); // Show fallback times
-            },
-            {
-              enableHighAccuracy: true,
-              timeout: 15000,
-              maximumAge: 10000,
-            },
-          );
+        if (!alreadyGranted) {
+          // Step 2: No permission yet, request it first
+          console.log('[SalahTracker] Requesting location permission from user...');
+          const hasPermission = await requestLocationPermission();
+          console.log('[SalahTracker] Permission request result:', hasPermission);
+          
+          if (!hasPermission) {
+            console.log('[SalahTracker] Location permission denied, using fallback');
+            setLocationServicesEnabled(true); // Set to true so we show fallback times
+            setLocationReady(true); // Show fallback Karachi times
+            return;
+          }
+        }
+
+        // Step 3: We have permission, now check if location services are enabled
+        console.log('[SalahTracker] Have permission, checking if location services are enabled...');
+        const servicesEnabled = await checkLocationServicesEnabled();
+        console.log('[SalahTracker] Location services enabled:', servicesEnabled);
+        setLocationServicesEnabled(servicesEnabled);
+
+        if (!servicesEnabled) {
+          console.log('[SalahTracker] Location services are DISABLED - showing message');
+          setLocationReady(false); // Keep loading state to show message
           return;
         }
 
-        // Step 3: Permission not granted, request it
-        const hasPermission = await requestLocationPermission();
-        console.log('[SalahTracker] Permission request result:', hasPermission);
-        
-        if (!hasPermission) {
-          console.log('[SalahTracker] Location permission denied, using fallback');
-          setLocationReady(true); // Show fallback Karachi times
-          return;
-        }
-
-        // Step 4: Permission just granted, fetch location
-        console.log('[SalahTracker] Requesting GPS position after permission granted...');
+        // Step 4: Permission granted AND services enabled, fetch location
+        console.log('[SalahTracker] Requesting GPS position...');
         Geolocation.getCurrentPosition(
           position => {
             const nextLocation = {
@@ -382,8 +365,17 @@ export default function SalahTrackerScreen() {
             setLocationReady(true);
           },
           error => {
-            console.log('[SalahTracker] Location error:', error);
-            setLocationReady(true); // Show fallback times
+            console.log('[SalahTracker] Location error code:', error.code, 'message:', error.message);
+            
+            // If we get error code 2 or 1, it likely means location services are off
+            if (error.code === 2 || error.code === 1) {
+              console.log('[SalahTracker] Location services might be OFF - showing message');
+              setLocationServicesEnabled(false);
+              setLocationReady(false);
+            } else {
+              console.log('[SalahTracker] Location error but not services issue, using fallback');
+              setLocationReady(true); // Show fallback times
+            }
           },
           {
             enableHighAccuracy: true,
@@ -497,6 +489,9 @@ export default function SalahTrackerScreen() {
                 </Text>
                 <Text style={styles.locationServicesSteps}>
                   Settings → Location → Turn ON
+                </Text>
+                <Text style={styles.locationServicesNote}>
+                  Note: Granting app permission is not enough. You must turn ON location services in your device settings first.
                 </Text>
               </>
             ) : (
@@ -735,6 +730,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(61,127,182,0.1)',
     borderRadius: 8,
     alignSelf: 'center',
+  },
+  locationServicesNote: {
+    marginTop: 10,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#9B4D4D',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    lineHeight: 14,
   },
   currentSalahName: {
     marginTop: 3,
