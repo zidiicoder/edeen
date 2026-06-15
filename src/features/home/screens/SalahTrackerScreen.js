@@ -309,7 +309,7 @@ export default function SalahTrackerScreen() {
   useFocusEffect(
     useCallback(() => {
       const loadLocation = async () => {
-        console.log('[SalahTracker] Screen focused - checking location services...');
+        console.log('[SalahTracker] Screen focused - checking location...');
         
         if (route?.params?.latitude && route?.params?.longitude) {
           console.log('[SalahTracker] Using route params:', route.params.latitude, route.params.longitude);
@@ -318,29 +318,8 @@ export default function SalahTrackerScreen() {
           return;
         }
 
-        // Step 1: First check if we already have permission
-        const alreadyGranted = await PermissionsAndroid.check(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        );
-        
-        console.log('[SalahTracker] Permission already granted:', alreadyGranted);
-
-        if (!alreadyGranted) {
-          // Step 2: No permission yet, request it first
-          console.log('[SalahTracker] Requesting location permission from user...');
-          const hasPermission = await requestLocationPermission();
-          console.log('[SalahTracker] Permission request result:', hasPermission);
-          
-          if (!hasPermission) {
-            console.log('[SalahTracker] Location permission denied, using fallback');
-            setLocationServicesEnabled(true); // Set to true so we show fallback times
-            setLocationReady(true); // Show fallback Karachi times
-            return;
-          }
-        }
-
-        // Step 3: We have permission, now check if location services are enabled
-        console.log('[SalahTracker] Have permission, checking if location services are enabled...');
+        // Step 1: ALWAYS check if location services are enabled first (every time screen is focused)
+        console.log('[SalahTracker] Checking if location services are enabled...');
         const servicesEnabled = await checkLocationServicesEnabled();
         console.log('[SalahTracker] Location services enabled:', servicesEnabled);
         setLocationServicesEnabled(servicesEnabled);
@@ -349,6 +328,26 @@ export default function SalahTrackerScreen() {
           console.log('[SalahTracker] Location services are DISABLED - showing message');
           setLocationReady(false); // Keep loading state to show message
           return;
+        }
+
+        // Step 2: Location services are ON, now check if we have permission
+        const alreadyGranted = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
+        
+        console.log('[SalahTracker] Permission already granted:', alreadyGranted);
+
+        if (!alreadyGranted) {
+          // Step 3: No permission yet, request it
+          console.log('[SalahTracker] Requesting location permission from user...');
+          const hasPermission = await requestLocationPermission();
+          console.log('[SalahTracker] Permission request result:', hasPermission);
+          
+          if (!hasPermission) {
+            console.log('[SalahTracker] Location permission denied, using fallback');
+            setLocationReady(true); // Show fallback Karachi times
+            return;
+          }
         }
 
         // Step 4: Permission granted AND services enabled, fetch location
@@ -367,13 +366,13 @@ export default function SalahTrackerScreen() {
           error => {
             console.log('[SalahTracker] Location error code:', error.code, 'message:', error.message);
             
-            // If we get error code 2 or 1, it likely means location services are off
-            if (error.code === 2 || error.code === 1) {
-              console.log('[SalahTracker] Location services might be OFF - showing message');
+            // If we get error code 2, location services are definitely off
+            if (error.code === 2) {
+              console.log('[SalahTracker] Location services are OFF (error code 2)');
               setLocationServicesEnabled(false);
               setLocationReady(false);
             } else {
-              console.log('[SalahTracker] Location error but not services issue, using fallback');
+              console.log('[SalahTracker] Location error but using fallback');
               setLocationReady(true); // Show fallback times
             }
           },
@@ -388,6 +387,7 @@ export default function SalahTrackerScreen() {
       // Reset states when screen focuses
       setLocationReady(false);
       setLocationServicesEnabled(null);
+      setDeviceLocation(null); // Also reset device location
       
       loadLocation();
     }, [route?.params?.latitude, route?.params?.longitude])
