@@ -204,8 +204,15 @@ export default function SalahTrackerScreen() {
     [getTodayDateKey()]: true,
   }));
 
+  // Use deviceLocation state, which will re-trigger effects when location is obtained
   const latitude = route?.params?.latitude ?? deviceLocation?.latitude ?? 24.8607;
   const longitude = route?.params?.longitude ?? deviceLocation?.longitude ?? 67.0011;
+  const isUsingFallbackLocation = !route?.params?.latitude && !deviceLocation?.latitude;
+  const locationSource = route?.params?.latitude 
+    ? 'Navigation Params' 
+    : deviceLocation?.latitude 
+      ? `GPS (${deviceLocation.latitude.toFixed(4)}, ${deviceLocation.longitude.toFixed(4)})` 
+      : 'Default (Karachi)';
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') {
       return true;
@@ -235,30 +242,38 @@ export default function SalahTrackerScreen() {
 
   useEffect(() => {
     const loadLocation = async () => {
+      console.log('[SalahTracker] Starting location fetch...');
+      
       if (route?.params?.latitude && route?.params?.longitude) {
+        console.log('[SalahTracker] Using route params:', route.params.latitude, route.params.longitude);
         setLocationReady(true);
         return;
       }
 
       const hasPermission = await requestLocationPermission();
+      console.log('[SalahTracker] Location permission granted:', hasPermission);
+      
       if (!hasPermission) {
+        console.log('[SalahTracker] Location permission denied, using fallback');
         setLocationReady(true);
         return;
       }
 
+      console.log('[SalahTracker] Requesting GPS position...');
       Geolocation.getCurrentPosition(
         position => {
           const nextLocation = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           };
+          console.log('[SalahTracker] GPS position obtained:', nextLocation);
           setDeviceLocation(nextLocation);
           // Persist so Salah check-in notifications can fetch prayer times.
           saveUserLocation(nextLocation);
           setLocationReady(true);
         },
         error => {
-          console.log('Location error:', error);
+          console.log('[SalahTracker] Location error:', error);
           setLocationReady(true);
         },
         {
@@ -282,6 +297,8 @@ export default function SalahTrackerScreen() {
 
     const getCurrentSalahTime = useCallback(async () => {
       const requestTimeout = 12000;
+      console.log('[SalahTracker] Fetching prayer times for:', { latitude, longitude });
+      
       try {
         setGetSalahTimeLoading(true);
         setSalahTimeLoadError('');
@@ -292,6 +309,8 @@ export default function SalahTrackerScreen() {
           request({url:`salah/current-upcoming?latitude=${latitude}&longitude=${longitude}`, method:'GET'}),
           timeoutPromise,
         ]);
+        
+        console.log('[SalahTracker] Prayer times response:', res?.data);
         const current = res?.data?.current_salah;
         const upcoming = res?.data?.upcoming_salah;
 
@@ -305,6 +324,7 @@ export default function SalahTrackerScreen() {
           setSalahTimeLoadError('Prayer time data is not available right now.');
         }
       } catch (error) {
+        console.log('[SalahTracker] Prayer times error:', error);
         setSalahTime({});
         setSalahTimeLoadError('Unable to load prayer times. Please try again.');
       } finally {
@@ -375,6 +395,18 @@ export default function SalahTrackerScreen() {
               </View>
               <Text style={styles.heroDateText}>{possibleSalahDate}</Text>
             </View>
+
+            {isUsingFallbackLocation && (
+              <View style={styles.locationWarning}>
+                <Text style={styles.locationWarningText}>
+                  ⚠️ Using default location (Karachi). Enable location permission for accurate prayer times.
+                </Text>
+              </View>
+            )}
+
+            <Text style={styles.locationDebugText}>
+              📍 Location: {locationSource}
+            </Text>
 
             <Text style={styles.currentSalahLabel}>
               {hasCurrentSalahData ? 'Current Salah Time' : 'Upcoming Salah Time'}
@@ -550,6 +582,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#6C8190',
+  },
+  locationWarning: {
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,165,0,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,165,0,0.3)',
+  },
+  locationWarningText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#D97706',
+    textAlign: 'center',
+  },
+  locationDebugText: {
+    marginTop: 6,
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#6C8190',
+    opacity: 0.8,
   },
   currentSalahLabel: {
     marginTop: 12,
