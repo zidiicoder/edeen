@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import Geolocation from '@react-native-community/geolocation';
 import colors from '../../../theme/colors';
 import TrackerModeTabs from '../components/tracking/TrackerModeTabs';
@@ -27,6 +27,7 @@ const TRACKER_OPTIONS = [
 
 const PRAYER_TIMES = [
   { key: 'fajr', label: 'Fajr', time: '05:28' },
+  { key: 'sunrise', label: 'Sunrise', time: '06:52' },
   { key: 'dhuhr', label: 'Dhuhr', time: '12:39' },
   { key: 'asr', label: 'Asr', time: '15:58' },
   { key: 'maghrib', label: 'Maghrib', time: '18:21' },
@@ -255,52 +256,88 @@ export default function SalahTrackerScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const loadLocation = async () => {
-      console.log('[SalahTracker] Starting location fetch...');
-      
-      if (route?.params?.latitude && route?.params?.longitude) {
-        console.log('[SalahTracker] Using route params:', route.params.latitude, route.params.longitude);
-        setLocationReady(true);
-        return;
-      }
-
-      const hasPermission = await requestLocationPermission();
-      console.log('[SalahTracker] Location permission granted:', hasPermission);
-      
-      if (!hasPermission) {
-        console.log('[SalahTracker] Location permission denied, using fallback');
-        setLocationReady(true);
-        return;
-      }
-
-      console.log('[SalahTracker] Requesting GPS position...');
-      Geolocation.getCurrentPosition(
-        position => {
-          const nextLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          console.log('[SalahTracker] GPS position obtained:', nextLocation);
-          setDeviceLocation(nextLocation);
-          // Persist so Salah check-in notifications can fetch prayer times.
-          saveUserLocation(nextLocation);
+  useFocusEffect(
+    useCallback(() => {
+      const loadLocation = async () => {
+        console.log('[SalahTracker] Screen focused - checking location permission...');
+        
+        if (route?.params?.latitude && route?.params?.longitude) {
+          console.log('[SalahTracker] Using route params:', route.params.latitude, route.params.longitude);
           setLocationReady(true);
-        },
-        error => {
-          console.log('[SalahTracker] Location error:', error);
-          setLocationReady(true);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 10000,
-        },
-      );
-    };
+          return;
+        }
 
-    loadLocation();
-  }, [route?.params?.latitude, route?.params?.longitude]);
+        // Check if permission is already granted
+        const alreadyGranted = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
+        
+        console.log('[SalahTracker] Permission already granted:', alreadyGranted);
+
+        if (alreadyGranted) {
+          // Permission already granted, fetch location directly
+          console.log('[SalahTracker] Requesting GPS position...');
+          Geolocation.getCurrentPosition(
+            position => {
+              const nextLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              };
+              console.log('[SalahTracker] GPS position obtained:', nextLocation);
+              setDeviceLocation(nextLocation);
+              saveUserLocation(nextLocation);
+              setLocationReady(true);
+            },
+            error => {
+              console.log('[SalahTracker] Location error:', error);
+              setLocationReady(true);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 10000,
+            },
+          );
+          return;
+        }
+
+        // Permission not granted, request it
+        const hasPermission = await requestLocationPermission();
+        console.log('[SalahTracker] Permission request result:', hasPermission);
+        
+        if (!hasPermission) {
+          console.log('[SalahTracker] Location permission denied, using fallback');
+          setLocationReady(true);
+          return;
+        }
+
+        console.log('[SalahTracker] Requesting GPS position after permission granted...');
+        Geolocation.getCurrentPosition(
+          position => {
+            const nextLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            };
+            console.log('[SalahTracker] GPS position obtained:', nextLocation);
+            setDeviceLocation(nextLocation);
+            saveUserLocation(nextLocation);
+            setLocationReady(true);
+          },
+          error => {
+            console.log('[SalahTracker] Location error:', error);
+            setLocationReady(true);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 10000,
+          },
+        );
+      };
+
+      loadLocation();
+    }, [route?.params?.latitude, route?.params?.longitude])
+  );
 
 
   const handleToggleSalahDay = (key, _day, value) => {
