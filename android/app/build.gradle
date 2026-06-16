@@ -112,6 +112,9 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 
+    // Google Play Services Location for enabling location services
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
+
     // Autolinking generates PackageList.java + JNI but does not inject the
     // Gradle project dependencies in this setup, so declare them explicitly to
     // put each native module's classes on the app's compile classpath.
