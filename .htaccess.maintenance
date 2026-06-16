@@ -1,0 +1,27 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Allow access to API endpoints (so your mobile app still works)
+    RewriteCond %{REQUEST_URI} !^/api/
+    
+    # Allow access to maintenance page itself
+    RewriteCond %{REQUEST_URI} !^/maintenance\.html$
+    
+    # Allow access to storage/images (if needed)
+    RewriteCond %{REQUEST_URI} !^/storage/
+    
+    # Redirect everything else to maintenance page
+    RewriteRule ^(.*)$ /maintenance.html [R=503,L]
+    
+    # Set 503 Service Unavailable header
+    ErrorDocument 503 /maintenance.html
+</IfModule>
+
+# Cache control for maintenance page
+<IfModule mod_headers.c>
+    <FilesMatch "maintenance\.html$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+</IfModule>
