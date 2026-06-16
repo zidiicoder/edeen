@@ -1,0 +1,100 @@
+================================================================================
+EDEEN APP - QUICK FIX GUIDE
+================================================================================
+
+YOUR SITUATION:
+✅ Backend uploaded to: https://edeenapp.co.uk/ (in /Laravel folder)
+✅ Mobile app already points to: https://edeenapp.co.uk/api/
+✅ Database configured correctly
+❌ Backend needs deployment setup (APP_KEY, permissions, migrations)
+
+================================================================================
+SOLUTION: Run 3 Commands via SSH
+================================================================================
+
+STEP 1: Connect to your server
+-------------------------------
+Method A - Using PuTTY (Windows):
+1. Download from: https://www.putty.org/
+2. Host: 77.37.37.189
+3. Port: 65002
+4. Username: u963776255
+5. Password: v_#8TqmW#PA3V*T
+
+Method B - Using Windows PowerShell:
+ssh u963776255@77.37.37.189 -p 65002
+(Enter password when asked: v_#8TqmW#PA3V*T)
+
+STEP 2: Run these 3 commands
+-----------------------------
+After logging in via SSH, copy-paste these commands ONE BY ONE:
+
+Command 1 - Navigate to Laravel folder:
+cd /home/u963776255/domains/edeenapp.co.uk/Laravel
+
+Command 2 - Deploy backend:
+php artisan key:generate --force && chmod -R 775 storage && chmod -R 775 bootstrap/cache && php artisan migrate --force && php artisan config:cache && php artisan route:cache
+
+Command 3 - Setup web access:
+cat > /home/u963776255/domains/edeenapp.co.uk/public_html/.htaccess << 'EOF'
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^(.*)$ /Laravel/public/$1 [L]
+</IfModule>
+EOF
+
+STEP 3: Test the backend
+-------------------------
+Open browser and visit:
+https://edeenapp.co.uk/api/login
+
+✅ GOOD: You see JSON error about "email field required"
+❌ BAD: You see 404 or 500 error
+
+================================================================================
+REBUILD AND TEST APP
+================================================================================
+
+The mobile app API URL is already correct (no changes needed).
+Just rebuild the APK:
+
+cd e:\edeen\android
+.\gradlew clean assembleRelease
+adb install app\build\outputs\apk\release\app-release.apk
+
+Then test login:
+- Email: forcann66@gmail.com
+- Password: Abcd@123
+
+It should work! 🎉
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Problem: Still getting 500 error after deployment
+Solution: Check Laravel logs
+cd /home/u963776255/domains/edeenapp.co.uk/Laravel
+tail -50 storage/logs/laravel.log
+
+Problem: Database connection error
+Solution: Verify .env has correct database password:
+cat .env | grep DB_PASSWORD
+Should show: DB_PASSWORD="tMee5Xis$xG.B27"
+
+Problem: Network error in app
+Solution: Make sure backend test URL works in browser first
+
+================================================================================
+DETAILED GUIDES
+================================================================================
+
+For step-by-step instructions with screenshots and alternatives:
+- Read: SETUP_INSTRUCTIONS.md
+- Read: backend/DEPLOYMENT_GUIDE.md
+
+================================================================================
+CREATED: June 15, 2026
+DOMAIN: https://edeenapp.co.uk/
+BACKEND: Laravel 11 on Hostinger
+================================================================================

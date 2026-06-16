@@ -18,7 +18,10 @@ class MainApplication : Application(), ReactApplication {
       object : DefaultReactNativeHost(this) {
         override fun getPackages(): List<ReactPackage> {
           // Packages from PackageList already includes autolinked native modules
-          return PackageList(this).packages
+          val packages = PackageList(this).packages.toMutableList()
+          // Add custom LocationManagerPackage
+          packages.add(LocationManagerPackage())
+          return packages
         }
 
         override fun getJSMainModuleName(): String = "index"

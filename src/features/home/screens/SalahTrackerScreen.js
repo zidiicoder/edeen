@@ -253,48 +253,47 @@ export default function SalahTrackerScreen() {
     }
   };
 
-  const checkLocationServicesEnabled = () => {
-    return new Promise((resolve) => {
-      if (Platform.OS === 'ios') {
-        resolve(true);
-        return;
-      }
+  const checkLocationServicesEnabled = async () => {
+    if (Platform.OS === 'ios') {
+      return true;
+    }
 
-      // For Android, we'll use Geolocation to check if location services are enabled
-      // by attempting to get the current position with a very short timeout
+    try {
+      // Use the LocationManager native module to check if location is enabled
+      const { LocationManager } = NativeModules;
+      
+      if (LocationManager && LocationManager.isLocationEnabled) {
+        const isEnabled = await LocationManager.isLocationEnabled();
+        console.log('[SalahTracker] LocationManager.isLocationEnabled:', isEnabled);
+        return isEnabled;
+      }
+    } catch (error) {
+      console.log('[SalahTracker] LocationManager not available, using fallback method');
+    }
+
+    // Fallback: Use Geolocation to check if location services are enabled
+    return new Promise((resolve) => {
       const timeoutId = setTimeout(() => {
-        console.log('[SalahTracker] Location services check timed out - services likely disabled');
+        console.log('[SalahTracker] Location check timeout - assuming disabled');
         resolve(false);
-      }, 3000);
+      }, 2000);
 
       Geolocation.getCurrentPosition(
         (position) => {
           clearTimeout(timeoutId);
-          console.log('[SalahTracker] Location services are enabled - got position');
+          console.log('[SalahTracker] Got position - services enabled');
           resolve(true);
         },
         (error) => {
           clearTimeout(timeoutId);
-          console.log('[SalahTracker] Location services error code:', error.code, 'message:', error.message);
-          // Error code 2 (POSITION_UNAVAILABLE) means location services are disabled
-          // Error code 1 (PERMISSION_DENIED) means permission denied but services might be on
-          // Error code 3 (TIMEOUT) means services are on but took too long
-          if (error.code === 2) {
-            console.log('[SalahTracker] Location services are DISABLED (error code 2)');
-            resolve(false);
-          } else if (error.code === 1) {
-            // Permission denied - but we need to check if services are actually on
-            // This could mean services are off OR permission is denied
-            console.log('[SalahTracker] Permission denied or services off (error code 1)');
-            resolve(false);
-          } else {
-            console.log('[SalahTracker] Location services appear to be enabled (error code', error.code, ')');
-            resolve(true);
-          }
+          console.log('[SalahTracker] Location error code:', error.code);
+          // Error code 2 = Location services disabled
+          // Error code 1 = Permission denied (but services might be on or off)
+          resolve(error.code !== 2);
         },
         {
           enableHighAccuracy: false,
-          timeout: 2000,
+          timeout: 1500,
           maximumAge: 0,
         },
       );
