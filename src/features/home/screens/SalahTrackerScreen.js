@@ -8,8 +8,6 @@ import {
   View,
   TouchableOpacity,
   NativeModules,
-  Alert,
-  Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
@@ -319,57 +317,29 @@ export default function SalahTrackerScreen() {
           return;
         }
 
-        // Step 1: ALWAYS request permission first (this will show the system dialog)
-        console.log('[SalahTracker] Requesting location permission from user...');
-        const hasPermission = await requestLocationPermission();
-        console.log('[SalahTracker] Permission request result:', hasPermission);
+        // Step 1: Check if we already have permission
+        const alreadyGranted = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
         
-        if (!hasPermission) {
-          console.log('[SalahTracker] Location permission denied, using fallback');
-          setLocationServicesEnabled(true);
-          setLocationReady(true); // Show fallback Karachi times
-          return;
-        }
+        console.log('[SalahTracker] Permission already granted:', alreadyGranted);
 
-        // Step 2: Permission granted, now check if location services are enabled
-        console.log('[SalahTracker] Permission granted, checking if location services are enabled...');
-        const servicesEnabled = await checkLocationServicesEnabled();
-        console.log('[SalahTracker] Location services enabled:', servicesEnabled);
-        setLocationServicesEnabled(servicesEnabled);
-
-        if (!servicesEnabled) {
-          console.log('[SalahTracker] Location services are DISABLED - prompting user to enable');
+        // Step 2: If we don't have permission, request it
+        if (!alreadyGranted) {
+          console.log('[SalahTracker] Requesting location permission from user...');
+          const hasPermission = await requestLocationPermission();
+          console.log('[SalahTracker] Permission request result:', hasPermission);
           
-          // Show alert asking user to enable location services
-          Alert.alert(
-            'Enable Location Services',
-            'To show accurate prayer times for your location, please enable Location Services in your device settings.',
-            [
-              {
-                text: 'Cancel',
-                onPress: () => {
-                  console.log('[SalahTracker] User cancelled, showing fallback times');
-                  setLocationReady(true); // Show fallback times
-                },
-                style: 'cancel',
-              },
-              {
-                text: 'Open Settings',
-                onPress: () => {
-                  console.log('[SalahTracker] Opening location settings');
-                  Linking.openSettings();
-                  setLocationReady(true); // Show fallback times while user goes to settings
-                },
-              },
-            ],
-            { cancelable: false }
-          );
-          setLocationReady(true); // Show fallback times
-          return;
+          if (!hasPermission) {
+            console.log('[SalahTracker] Location permission denied, using fallback');
+            setLocationServicesEnabled(true);
+            setLocationReady(true); // Show fallback Karachi times
+            return;
+          }
         }
 
-        // Step 3: Permission granted AND services enabled, fetch location
-        console.log('[SalahTracker] Requesting GPS position...');
+        // Step 3: We have permission, try to get location (silently)
+        console.log('[SalahTracker] Attempting to get GPS position...');
         Geolocation.getCurrentPosition(
           position => {
             const nextLocation = {
@@ -379,11 +349,14 @@ export default function SalahTrackerScreen() {
             console.log('[SalahTracker] GPS position obtained:', nextLocation);
             setDeviceLocation(nextLocation);
             saveUserLocation(nextLocation);
+            setLocationServicesEnabled(true);
             setLocationReady(true);
           },
           error => {
             console.log('[SalahTracker] Location error code:', error.code, 'message:', error.message);
-            console.log('[SalahTracker] Using fallback location');
+            // Silently fall back to Karachi times - no dialogs, no alerts
+            console.log('[SalahTracker] Using fallback Karachi times (location services likely OFF)');
+            setLocationServicesEnabled(error.code !== 2);
             setLocationReady(true); // Show fallback times
           },
           {
@@ -397,7 +370,7 @@ export default function SalahTrackerScreen() {
       // Reset states when screen focuses
       setLocationReady(false);
       setLocationServicesEnabled(null);
-      setDeviceLocation(null); // Also reset device location
+      setDeviceLocation(null);
       
       loadLocation();
     }, [route?.params?.latitude, route?.params?.longitude])
