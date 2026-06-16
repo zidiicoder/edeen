@@ -338,8 +338,33 @@ export default function SalahTrackerScreen() {
         setLocationServicesEnabled(servicesEnabled);
 
         if (!servicesEnabled) {
-          console.log('[SalahTracker] Location services are DISABLED - showing fallback times');
-          setLocationReady(true); // Show fallback Karachi times
+          console.log('[SalahTracker] Location services are DISABLED - prompting user to enable');
+          
+          // Show alert asking user to enable location services
+          Alert.alert(
+            'Enable Location Services',
+            'To show accurate prayer times for your location, please enable Location Services in your device settings.',
+            [
+              {
+                text: 'Cancel',
+                onPress: () => {
+                  console.log('[SalahTracker] User cancelled, showing fallback times');
+                  setLocationReady(true); // Show fallback times
+                },
+                style: 'cancel',
+              },
+              {
+                text: 'Open Settings',
+                onPress: () => {
+                  console.log('[SalahTracker] Opening location settings');
+                  Linking.openSettings();
+                  setLocationReady(true); // Show fallback times while user goes to settings
+                },
+              },
+            ],
+            { cancelable: false }
+          );
+          setLocationReady(true); // Show fallback times
           return;
         }
 
