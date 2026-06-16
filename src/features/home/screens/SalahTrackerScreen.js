@@ -8,6 +8,8 @@ import {
   View,
   TouchableOpacity,
   NativeModules,
+  Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
@@ -308,7 +310,7 @@ export default function SalahTrackerScreen() {
   useFocusEffect(
     useCallback(() => {
       const loadLocation = async () => {
-        console.log('[SalahTracker] Screen focused - requesting location permission...');
+        console.log('[SalahTracker] Screen focused - validating location access...');
         
         if (route?.params?.latitude && route?.params?.longitude) {
           console.log('[SalahTracker] Using route params:', route.params.latitude, route.params.longitude);
@@ -317,60 +319,132 @@ export default function SalahTrackerScreen() {
           return;
         }
 
-        // Step 1: Check if we already have permission
+        // Step 1: Check if permission is granted
         const alreadyGranted = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         );
         
         console.log('[SalahTracker] Permission already granted:', alreadyGranted);
 
-        // Step 2: If we don't have permission, request it
+        // Step 2: If permission not granted, request it
         if (!alreadyGranted) {
           console.log('[SalahTracker] Requesting location permission from user...');
           const hasPermission = await requestLocationPermission();
           console.log('[SalahTracker] Permission request result:', hasPermission);
           
           if (!hasPermission) {
-            console.log('[SalahTracker] Location permission denied, using fallback');
-            setLocationServicesEnabled(true);
-            setLocationReady(true); // Show fallback Karachi times
+            console.log('[SalahTracker] Permission denied - keeping in loading state');
+            setLocationServicesEnabled(false);
+            setLocationReady(false); // Stay in loading state - DO NOT show prayer times
+            
+            // Show alert asking user to grant permission
+            setTimeout(() => {
+              Alert.alert(
+                'Location Permission Required',
+                'This app requires location access to show accurate prayer times for your area. Please grant location permission.',
+                [
+                  {
+                    text: 'Grant Permission',
+                    onPress: () => {
+                      // User will need to navigate away and back to trigger permission request again
+                      console.log('[SalahTracker] User will try again');
+                    },
+                  },
+                ],
+                { cancelable: false }
+              );
+            }, 500);
             return;
           }
         }
 
-        // Step 3: We have permission, try to get location (silently)
-        console.log('[SalahTracker] Attempting to get GPS position...');
+        // Step 3: Permission is granted, now check if location services are enabled
+        console.log('[SalahTracker] Permission granted, checking location services...');
+        const servicesEnabled = await checkLocationServicesEnabled();
+        console.log('[SalahTracker] Location services enabled:', servicesEnabled);
+        setLocationServicesEnabled(servicesEnabled);
+
+        if (!servicesEnabled) {
+          console.log('[SalahTracker] Location services DISABLED - prompting user');
+          setLocationReady(false); // Stay in loading state - DO NOT show prayer times
+          
+          // Show alert asking user to enable location services
+          setTimeout(() => {
+            Alert.alert(
+              'Location Services Disabled',
+              'Please enable Location Services in your device settings to show accurate prayer times for your current location.',
+              [
+                {
+                  text: 'Cancel',
+                  onPress: () => {
+                    console.log('[SalahTracker] User cancelled - staying in loading state');
+                    // Keep in loading state
+                  },
+                  style: 'cancel',
+                },
+                {
+                  text: 'Open Settings',
+                  onPress: () => {
+                    console.log('[SalahTracker] Opening location settings');
+                    Linking.openSettings();
+                  },
+                },
+              ],
+              { cancelable: false }
+            );
+          }, 500);
+          return;
+        }
+
+        // Step 4: Both permission granted AND services enabled - get FRESH location
+        console.log('[SalahTracker] Getting FRESH GPS location (no cache)...');
         Geolocation.getCurrentPosition(
           position => {
             const nextLocation = {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
             };
-            console.log('[SalahTracker] GPS position obtained:', nextLocation);
+            console.log('[SalahTracker] FRESH GPS position obtained:', nextLocation);
             setDeviceLocation(nextLocation);
             saveUserLocation(nextLocation);
-            setLocationServicesEnabled(true);
             setLocationReady(true);
           },
           error => {
-            console.log('[SalahTracker] Location error code:', error.code, 'message:', error.message);
-            // Silently fall back to Karachi times - no dialogs, no alerts
-            console.log('[SalahTracker] Using fallback Karachi times (location services likely OFF)');
-            setLocationServicesEnabled(error.code !== 2);
-            setLocationReady(true); // Show fallback times
+            console.log('[SalahTracker] GPS error code:', error.code, 'message:', error.message);
+            
+            // If GPS fails even with permission & services ON, prompt user
+            setLocationReady(false); // DO NOT show prayer times
+            
+            setTimeout(() => {
+              Alert.alert(
+                'Unable to Get Location',
+                'Could not determine your current location. Please ensure GPS is enabled and try again.',
+                [
+                  {
+                    text: 'Retry',
+                    onPress: () => {
+                      // User will need to navigate away and back to retry
+                      console.log('[SalahTracker] User will retry');
+                    },
+                  },
+                ],
+                { cancelable: false }
+              );
+            }, 500);
           },
           {
             enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 10000,
+            timeout: 20000,
+            maximumAge: 0, // DO NOT use cached location - always get fresh
           },
         );
       };
 
-      // Reset states when screen focuses
+      // Reset ALL states when screen focuses - no cached data
       setLocationReady(false);
       setLocationServicesEnabled(null);
       setDeviceLocation(null);
+      setSalahTime({}); // Clear previous prayer times
       
       loadLocation();
     }, [route?.params?.latitude, route?.params?.longitude])
