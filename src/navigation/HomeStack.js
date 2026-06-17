@@ -5,6 +5,7 @@ import HomeStartScreen from '../features/home/screens/HomeStartScreen';
 import HomeScreen from '../features/home/screens/HomeScreen';
 import NotificationsScreen from '../features/home/screens/NotificationsScreen';
 import ReminderScreen from '../features/home/screens/ReminderScreen';
+import PrayerHistoryScreen from '../features/home/screens/PrayerHistoryScreen';
 import ProfileScreen from '../features/profile/screens/ProfileScreen';
 import ProfileEditScreen from '../features/profile/screens/ProfileEditScreen';
 import ShareAppScreen from '../features/profile/screens/ShareAppScreen';
@@ -34,6 +35,7 @@ export default function HomeStack() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Reminder" component={ReminderScreen} />
+        <Stack.Screen name="PrayerHistory" component={PrayerHistoryScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
         <Stack.Screen name="ShareApp" component={ShareAppScreen} />

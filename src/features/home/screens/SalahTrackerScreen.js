@@ -12,6 +12,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
 import Geolocation from '@react-native-community/geolocation';
+import Feather from 'react-native-vector-icons/Feather';
 import colors from '../../../theme/colors';
 import TrackerModeTabs from '../components/tracking/TrackerModeTabs';
 import TrackingSalahPanel from '../components/tracking/TrackingSalahPanel';
@@ -131,7 +132,7 @@ function formatMinutesAsDuration(totalMinutes) {
   return `${hours}h ${minutes}m`;
 }
 
-export default function SalahTrackerScreen() {
+export default function SalahTrackerScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const route = useRoute();
   const { user } = useContext(AuthContext);
@@ -571,6 +572,17 @@ export default function SalahTrackerScreen() {
           onChange={setActiveTracker}
         />
 
+        {/* Prayer History Button */}
+        <TouchableOpacity
+          style={styles.historyButton}
+          onPress={() => navigation.navigate('PrayerHistory')}
+          activeOpacity={0.8}
+        >
+          <Feather name="calendar" size={18} color="#3D7FB6" />
+          <Text style={styles.historyButtonText}>View Prayer History</Text>
+          <Feather name="chevron-right" size={18} color="#3D7FB6" />
+        </TouchableOpacity>
+
         {getSalahTimeLoading ? (
           <View style={styles.trackerSkeletonWrap}>
             <View style={styles.trackerSkeletonLine} />
@@ -830,5 +842,24 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: '#DFE7EE',
     marginBottom: 10,
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EAF4FB',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 14,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#DCE9F4',
+  },
+  historyButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3D7FB6',
+    flex: 1,
   },
 });
