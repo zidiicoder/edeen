@@ -39,7 +39,38 @@ export default function TrackingSalahPanel({latitude, longitude, date, staticPra
     try {
       setLoading(true);
       const res = await request({url:`salah/timings?latitude=${latitude}&longitude=${longitude}&date=${dateKey}`, method:'GET'});  
-      setPrayerTimes(formatPrayerTimes(res.data.timings));
+      const today = formatPrayerTimes(res.data.timings);
+      
+      // Get tomorrow's times for prayers that have passed
+      const tomorrow = new Date(date);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowKey = formatDateYYMMDD(tomorrow);
+      const tomorrowRes = await request({url:`salah/timings?latitude=${latitude}&longitude=${longitude}&date=${tomorrowKey}`, method:'GET'});
+      const tomorrowTimes = formatPrayerTimes(tomorrowRes.data.timings);
+      
+      // Check which prayers have passed
+      const now = new Date();
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      
+      const enrichedTimes = today.map(prayer => {
+        const [hours, minutes] = prayer.time.split(':').map(Number);
+        const prayerTime = hours * 60 + minutes;
+        
+        // If prayer time has passed, show tomorrow's time
+        if (currentTime > prayerTime) {
+          const tomorrowPrayer = tomorrowTimes.find(t => t.label === prayer.label);
+          if (tomorrowPrayer) {
+            return {
+              ...prayer,
+              time: tomorrowPrayer.time,
+              isTomorrow: true,
+            };
+          }
+        }
+        return prayer;
+      });
+      
+      setPrayerTimes(enrichedTimes);
     } catch (error) {
       setPrayerTimes(staticPrayerTimes || []);
     } finally {
@@ -182,7 +213,12 @@ export default function TrackingSalahPanel({latitude, longitude, date, staticPra
         >
           {prayerTimes.map(item => (
             <View key={item.key || item.label} style={styles.timeCard}>
-              <Text style={styles.timeLabel}>{item.label}</Text>
+              <View style={styles.timeLabelContainer}>
+                <Text style={styles.timeLabel}>{item.label}</Text>
+                {item.isTomorrow && (
+                  <Text style={styles.tomorrowLabel}>(Tomorrow)</Text>
+                )}
+              </View>
               <Text style={styles.timeValue}>{item.time}</Text>
             </View>
           ))}
@@ -282,10 +318,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#DCE9F4',
   },
+  timeLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   timeLabel: {
     fontSize: 13,
     fontWeight: '700',
     color: colors.textPrimary,
+  },
+  tomorrowLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#6B7280',
+    fontStyle: 'italic',
   },
   timeValue: {
     fontSize: 13,
