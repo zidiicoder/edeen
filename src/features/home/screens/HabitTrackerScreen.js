@@ -818,8 +818,15 @@ export default function HabitTrackerScreen() {
                 <View style={styles.habitSkeletonLineMedium} />
               </View>
             ))
+          ) : habits.length === 0 ? (
+            <View style={styles.emptyStateContainer}>
+              <Text style={styles.emptyStateEmoji}>🎯</Text>
+              <Text style={styles.emptyStateTitle}>Start Building Your Habits Today</Text>
+              <Text style={styles.emptyStateDescription}>
+                Create your first habit and begin your journey to a better you
+              </Text>
+            </View>
           ) : (
-            habits.length > 0 &&
             habits.map(habit => {
               const isExpanded = Boolean(expandedHabits[habit.id]);
               const currentDayIndex = getCurrentDayIndex(habit);
@@ -1945,5 +1952,31 @@ daysTextRight: {
   marginTop: 12,
   marginBottom: 10,
 },
+  // Empty State Styles
+  emptyStateContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 32,
+  },
+  emptyStateEmoji: {
+    fontSize: 72,
+    marginBottom: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111111',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  emptyStateDescription: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
 });
 
