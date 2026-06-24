@@ -1,0 +1,24 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # IMPORTANT: Allow API routes FIRST (for mobile app)
+    RewriteCond %{REQUEST_URI} ^/api/ [OR]
+    RewriteCond %{REQUEST_URI} ^/storage/ [OR]
+    RewriteCond %{REQUEST_URI} ^/maintenance\.html$
+    RewriteRule ^ - [L]
+    
+    # Redirect everything else to maintenance page
+    RewriteRule ^(.*)$ /maintenance.html [R=503,L]
+    
+    # Set 503 Service Unavailable header
+    ErrorDocument 503 /maintenance.html
+</IfModule>
+
+# Cache control for maintenance page
+<IfModule mod_headers.c>
+    <FilesMatch "maintenance\.html$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+</IfModule>

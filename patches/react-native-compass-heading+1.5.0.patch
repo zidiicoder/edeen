@@ -1,0 +1,65 @@
+diff --git a/node_modules/react-native-compass-heading/android/build.gradle b/node_modules/react-native-compass-heading/android/build.gradle
+index 95ea8bb..393afc9 100644
+--- a/node_modules/react-native-compass-heading/android/build.gradle
++++ b/node_modules/react-native-compass-heading/android/build.gradle
+@@ -31,8 +31,13 @@ def getExtOrIntegerDefault(name) {
+ }
+ 
+ android {
++  namespace "com.compassheading"
+   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
+ 
++  buildFeatures {
++    buildConfig true
++  }
++
+   defaultConfig {
+     minSdkVersion getExtOrIntegerDefault("minSdkVersion")
+     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+diff --git a/node_modules/react-native-compass-heading/android/src/main/AndroidManifest.xml b/node_modules/react-native-compass-heading/android/src/main/AndroidManifest.xml
+index 702a5e9..0a0938a 100644
+--- a/node_modules/react-native-compass-heading/android/src/main/AndroidManifest.xml
++++ b/node_modules/react-native-compass-heading/android/src/main/AndroidManifest.xml
+@@ -1,4 +1,3 @@
+-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+-          package="com.compassheading">
++<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+ 
+ </manifest>
+diff --git a/node_modules/react-native-compass-heading/ios/CompassHeading.h b/node_modules/react-native-compass-heading/ios/CompassHeading.h
+index 0a98d2d..b92d006 100644
+--- a/node_modules/react-native-compass-heading/ios/CompassHeading.h
++++ b/node_modules/react-native-compass-heading/ios/CompassHeading.h
+@@ -1,5 +1,5 @@
+ 
+-#ifdef RCT_NEW_ARCH_ENABLED
++#if 0 // PATCH: force legacy (no codegen spec shipped)
+ #import "RNCompassHeadingSpec.h"
+ 
+ @interface CompassHeading : NSObject <NativeCompassHeadingSpec>
+diff --git a/node_modules/react-native-compass-heading/ios/CompassHeading.mm b/node_modules/react-native-compass-heading/ios/CompassHeading.mm
+index 8c1ea26..8003fa4 100644
+--- a/node_modules/react-native-compass-heading/ios/CompassHeading.mm
++++ b/node_modules/react-native-compass-heading/ios/CompassHeading.mm
+@@ -121,7 +121,7 @@ RCT_EXPORT_METHOD(hasCompass:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromis
+ }
+ 
+ // Don't compile this code when we build for the old architecture.
+-#ifdef RCT_NEW_ARCH_ENABLED
++#if 0 // PATCH: force legacy (no codegen spec shipped)
+ - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
+     (const facebook::react::ObjCTurboModule::InitParams &)params
+ {
+diff --git a/node_modules/react-native-compass-heading/react-native-compass-heading.podspec b/node_modules/react-native-compass-heading/react-native-compass-heading.podspec
+index 23462cf..2a53174 100644
+--- a/node_modules/react-native-compass-heading/react-native-compass-heading.podspec
++++ b/node_modules/react-native-compass-heading/react-native-compass-heading.podspec
+@@ -19,7 +19,7 @@ Pod::Spec.new do |s|
+   s.dependency "React-Core"
+ 
+   # Don't install the dependencies when we run `pod install` in the old architecture.
+-  if ENV['RCT_NEW_ARCH_ENABLED'] == '1' then
++  if false then  # PATCH: lib ships no codegenConfig, so force the legacy (interop) path on iOS
+     s.compiler_flags = folly_compiler_flags + " -DRCT_NEW_ARCH_ENABLED=1"
+     s.pod_target_xcconfig    = {
+         "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\"",

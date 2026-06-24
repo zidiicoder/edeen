@@ -1,0 +1,36 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    
+    # Allow API routes - pass to Laravel
+    RewriteCond %{REQUEST_URI} ^/api/
+    RewriteRule ^(.*)$ index.php [QSA,L]
+    
+    # Allow storage access
+    RewriteCond %{REQUEST_URI} ^/storage/
+    RewriteRule ^ - [L]
+    
+    # Allow maintenance page itself
+    RewriteCond %{REQUEST_URI} ^/maintenance\.html$
+    RewriteRule ^ - [L]
+    
+    # Redirect Handle Front Controller (everything else to maintenance)
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ /maintenance.html [R=503,L]
+    
+    # Set 503 Service Unavailable header
+    ErrorDocument 503 /maintenance.html
+</IfModule>
+
+# Cache control for maintenance page
+<IfModule mod_headers.c>
+    <FilesMatch "maintenance\.html$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+</IfModule>

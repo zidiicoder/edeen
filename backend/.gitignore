@@ -1,0 +1,15 @@
+/vendor
+/node_modules
+/.idea
+/.vscode
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+auth.json
+/storage/*.key
+/storage/app/firebase/service-account.json
+/public/storage
+/public/hot
