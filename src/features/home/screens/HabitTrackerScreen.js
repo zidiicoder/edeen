@@ -8,6 +8,7 @@ import {
   Modal,
   Pressable,
   Platform,
+  Animated,
 } from 'react-native';
 import {
   SafeAreaView,
@@ -113,6 +114,11 @@ export default function HabitTrackerScreen() {
   const [expandedHabits, setExpandedHabits] = useState({});
   const noticeTimerRef = useRef(null);
 
+  // Animation refs for empty state FAB
+  const fabWidth = useRef(new Animated.Value(50)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const shakeIntervalRef = useRef(null);
+
   const calendarSelectedDate = useMemo(() => {
     if (calendarPurpose === 'habitStart') return habitStartDate;
     if (calendarPurpose === 'habitCustom') return habitCustomDate;
@@ -159,6 +165,69 @@ export default function HabitTrackerScreen() {
       }
     });
   }, []);
+
+  // Animation effect for empty state FAB
+  useEffect(() => {
+    if (!habitsLoading && habits.length === 0) {
+      // Expand animation
+      Animated.spring(fabWidth, {
+        toValue: 280,
+        useNativeDriver: false,
+        tension: 50,
+        friction: 7,
+      }).start();
+
+      // Start shake animation every 3 seconds
+      const startShake = () => {
+        Animated.sequence([
+          Animated.timing(shakeAnim, {
+            toValue: 10,
+            duration: 100,
+            useNativeDriver: false,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: -10,
+            duration: 100,
+            useNativeDriver: false,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: 10,
+            duration: 100,
+            useNativeDriver: false,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: false,
+          }),
+        ]).start();
+      };
+
+      // Initial shake after expansion
+      setTimeout(startShake, 500);
+
+      // Set interval for repeating shake
+      shakeIntervalRef.current = setInterval(startShake, 3000);
+    } else {
+      // Collapse to normal FAB
+      Animated.spring(fabWidth, {
+        toValue: 50,
+        useNativeDriver: false,
+      }).start();
+
+      // Clear shake interval
+      if (shakeIntervalRef.current) {
+        clearInterval(shakeIntervalRef.current);
+        shakeIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (shakeIntervalRef.current) {
+        clearInterval(shakeIntervalRef.current);
+      }
+    };
+  }, [habits.length, habitsLoading, fabWidth, shakeAnim]);
 
   const completedDays = habit => {
     const start = new Date(habit.start_date);
@@ -818,14 +887,6 @@ export default function HabitTrackerScreen() {
                 <View style={styles.habitSkeletonLineMedium} />
               </View>
             ))
-          ) : habits.length === 0 ? (
-            <View style={styles.emptyStateContainer}>
-              <Text style={styles.emptyStateEmoji}>🎯</Text>
-              <Text style={styles.emptyStateTitle}>Start Building Your Habits Today</Text>
-              <Text style={styles.emptyStateDescription}>
-                Create your first habit and begin your journey to a better you
-              </Text>
-            </View>
           ) : (
             habits.map(habit => {
               const isExpanded = Boolean(expandedHabits[habit.id]);
@@ -1092,16 +1153,30 @@ export default function HabitTrackerScreen() {
             })
           )}
         </ScrollView>
-        <TouchableOpacity
-          style={[styles.fab, { bottom: 86 + insets.bottom }]}
-          onPress={() => {
-            hapticTap();
-            navigation.navigate('AddHabit');
-          }}
-          activeOpacity={0.9}
+        <Animated.View
+          style={[
+            styles.fab,
+            {
+              bottom: 86 + insets.bottom,
+              width: fabWidth,
+              transform: [{ translateX: shakeAnim }],
+            },
+          ]}
         >
-          <Text style={styles.fabText}>+</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.fabTouchable}
+            onPress={() => {
+              hapticTap();
+              navigation.navigate('AddHabit');
+            }}
+            activeOpacity={0.9}
+          >
+            {!habitsLoading && habits.length === 0 && (
+              <Text style={styles.fabLabel}>Start Building Your Habits Today</Text>
+            )}
+            <Text style={styles.fabText}>+</Text>
+          </TouchableOpacity>
+        </Animated.View>
 
         <CalendarModal
           visible={calendarOpen}
@@ -1734,10 +1809,10 @@ daysTextRight: {
     position: 'absolute',
     right: 16,
     bottom: 86,
-    width: 50,
     height: 50,
     borderRadius: 25,
     backgroundColor: '#F4C9E4',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1745,8 +1820,27 @@ daysTextRight: {
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     ...Platform.select({ android: { elevation: 6 } }),
+    overflow: 'hidden',
   },
-  fabText: { fontSize: 26, color: '#FFFFFF', marginBottom: 2 },
+  fabTouchable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  fabLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  fabText: { 
+    fontSize: 26, 
+    color: '#FFFFFF', 
+    marginBottom: 2,
+  },
 
   modalOverlay: {
     flex: 1,
@@ -1952,31 +2046,5 @@ daysTextRight: {
   marginTop: 12,
   marginBottom: 10,
 },
-  // Empty State Styles
-  emptyStateContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 32,
-  },
-  emptyStateEmoji: {
-    fontSize: 72,
-    marginBottom: 20,
-  },
-  emptyStateTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111111',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  emptyStateDescription: {
-    fontSize: 15,
-    fontWeight: '400',
-    color: '#666666',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
 });
 
