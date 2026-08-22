@@ -131,6 +131,7 @@ dependencies {
     implementation project(':react-native-safe-area-context')
     implementation project(':react-native-screens')
     implementation project(':react-native-sensors')
+    implementation project(':react-native-svg')
     implementation project(':react-native-vector-icons')
     implementation project(':react-native-webview')
     implementation project(':react-native-worklets')

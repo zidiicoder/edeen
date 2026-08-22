@@ -41,10 +41,8 @@ const HABIT_PERIOD_DAYS = 40;
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-// Frequency chips: the internal `value` is kept as 'Custom'/'40 Days' so it
-// stays valid against habitSchema + the backend; only the display label changes.
+// Frequency chips: Fixed to 40 Days only
 const FREQUENCY_OPTIONS = [
-  { value: 'Custom', label: 'Specific Days of Week' },
   { value: '40 Days', label: '40 Days' },
 ];
 
@@ -159,27 +157,13 @@ export default function AddHabitScreen() {
   };
 
   const buildHabitPayload = () => {
-    const basePayload = {
+    return {
       name: habitName.trim(),
       icon: habitIcon,
       start_date: formatDateYYMMDD(habitStartDate),
       color: habitColor,
+      frequency: '40_days',
     };
-
-    if (frequency === '40 Days') {
-      return { ...basePayload, frequency: '40_days' };
-    }
-
-    if (frequency === 'Custom') {
-      return {
-        ...basePayload,
-        frequency: 'custom',
-        custom_date: formatDateYYMMDD(endDate),
-        days_of_week: selectedDays,
-      };
-    }
-
-    return basePayload;
   };
 
   const onSave = async () => {
@@ -190,14 +174,6 @@ export default function AddHabitScreen() {
         { title: habitName?.trim(), frequency },
         { abortEarly: false },
       );
-
-      if (isSpecificDays && selectedDays.length === 0) {
-        setErrors(prev => ({
-          ...prev,
-          frequency: 'Select at least one day of the week.',
-        }));
-        return;
-      }
 
       setLoading(true);
       const payload = buildHabitPayload();
@@ -314,39 +290,6 @@ export default function AddHabitScreen() {
             <Text style={styles.errorText}>{errors.frequency}</Text>
           ) : null}
 
-          {isSpecificDays ? (
-            <>
-              <Text style={styles.label}>Select Days</Text>
-              <View style={styles.daysBox}>
-                <View style={styles.daysRow}>
-                  {DAY_LABELS.map(day => {
-                    const active = selectedDays.includes(day);
-                    return (
-                      <TouchableOpacity
-                        key={day}
-                        style={[styles.dayChip, active && styles.dayChipActive]}
-                        onPress={() => toggleDay(day)}
-                        activeOpacity={0.85}
-                      >
-                        <Text
-                          style={[
-                            styles.dayText,
-                            active && styles.dayTextActive,
-                          ]}
-                        >
-                          {day}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-              <Text style={styles.helperText}>
-                Runs on the selected days for {HABIT_PERIOD_DAYS} days.
-              </Text>
-            </>
-          ) : null}
-
           <Text style={styles.label}>Start Date</Text>
           <TouchableOpacity
             style={styles.dateInput}
@@ -356,16 +299,6 @@ export default function AddHabitScreen() {
             <Text style={styles.dateText}>{habitStartDate.toDateString()}</Text>
             <Feather name="calendar" size={16} color="#7A7A7A" />
           </TouchableOpacity>
-
-          {isSpecificDays ? (
-            <>
-              <Text style={styles.label}>End Date (40 days from start)</Text>
-              <View style={[styles.dateInput, styles.dateInputReadonly]}>
-                <Text style={styles.dateText}>{endDate.toDateString()}</Text>
-                <Feather name="lock" size={14} color="#9A9A9A" />
-              </View>
-            </>
-          ) : null}
 
           <Text style={styles.label}>Choose Color</Text>
           <View style={styles.colorBox}>

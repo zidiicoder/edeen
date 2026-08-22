@@ -43,6 +43,7 @@ class Journal extends Model
             'emoji' => $this->emoji,
             'mood' => $this->emoji,
             'tag' => $this->tag,
+            'theme' => $this->tag,
             'promt' => $this->promt ?? [],
             'date' => optional($this->date)->toDateString(),
         ];

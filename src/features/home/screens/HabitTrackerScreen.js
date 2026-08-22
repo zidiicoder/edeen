@@ -1046,6 +1046,7 @@ export default function HabitTrackerScreen() {
                             <View
                               style={[
                                 styles.calendarDayCircle,
+                                isInRange && !checked && !isToday && styles.calendarDayCircleInRange,
                                 isToday && !checked && [
                                   styles.calendarDayCircleToday,
                                   { 
@@ -1694,6 +1695,10 @@ daysTextRight: {
     borderColor: 'rgba(17, 17, 17, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  calendarDayCircleInRange: {
+    backgroundColor: 'rgba(244, 201, 228, 0.2)', // Light pink to show it's in the 40-day range
+    borderColor: 'rgba(244, 201, 228, 0.5)',
   },
   calendarDayCircleChecked: {
     backgroundColor: '#F48FB1',
