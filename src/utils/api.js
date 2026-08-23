@@ -11,6 +11,8 @@ const api = axios.create({
   baseURL: "https://api.edeenapp.co.uk/api/",
   headers: {
     Accept: "application/json",
+    // Add browser-like User-Agent to bypass hosting security
+    "User-Agent": "Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
   },
 });
 
