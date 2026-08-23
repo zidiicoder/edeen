@@ -1,0 +1,162 @@
+================================================================================
+TECHNICAL ISSUE REPORT - MOBILE APP API ACCESS BLOCKED
+================================================================================
+
+ISSUE SUMMARY:
+Our React Native mobile application cannot access the API endpoints on 
+api.edeenapp.co.uk because the CDN JavaScript challenge is still active on 
+this subdomain, despite previous confirmation that it was disabled.
+
+================================================================================
+BACKGROUND:
+================================================================================
+
+Our mobile application (EDeen) was working correctly for 2 months. Recently, 
+login and all API calls started failing with "Invalid credentials" errors.
+
+After investigation, we discovered the root cause:
+- Hostinger CDN Bot Protection is returning JavaScript challenge pages (HTTP 403)
+- Mobile apps cannot execute JavaScript challenges (they are designed for browsers)
+- This blocks ALL API requests from the mobile application
+
+================================================================================
+SOLUTION IMPLEMENTED:
+================================================================================
+
+Following Hostinger support guidance, we created a dedicated API subdomain:
+- Subdomain: api.edeenapp.co.uk
+- Purpose: Dedicated API endpoint with JavaScript challenge disabled
+- Configuration: Points to /home/u402661558/domains/edeenapp.co.uk/laravel/public
+
+Security approach agreed upon:
+✓ Keep JavaScript Challenge ON for edeenapp.co.uk (main website)
+✓ Turn JavaScript Challenge OFF for api.edeenapp.co.uk (API only)
+✓ Keep WAF enabled for both
+✓ API protected by Laravel authentication tokens + rate limiting
+
+Hostinger support confirmed:
+"The CDN settings for api.edeenapp.co.uk are now configured as requested:
+- JavaScript Challenge: Disabled
+- Web Application Firewall: Enabled
+- WAF security level: 3"
+
+================================================================================
+CURRENT PROBLEM:
+================================================================================
+
+Despite the confirmation above, the JavaScript challenge is STILL ACTIVE on 
+api.edeenapp.co.uk subdomain.
+
+EVIDENCE:
+
+1. Mobile App Logs (captured from device):
+   - Request URL: https://api.edeenapp.co.uk/api/login
+   - Expected: JSON response with authentication token
+   - Actual: HTML page with JavaScript challenge
+   - HTTP Status: 403 Forbidden
+   - Error: "Checking your browser before accessing"
+
+2. Server Response Headers:
+   - Server: hcdn (Hostinger CDN)
+   - Contains: /hcdn-cgi/jschallenge script
+
+3. Test from Computer (PowerShell):
+   curl -X POST https://api.edeenapp.co.uk/api/login -d "email=forcann66@gmail.com&password=Abcd@123"
+   
+   Result: HTML JavaScript challenge page (403 Forbidden)
+   Expected: JSON response like:
+   {"status":"success","message":"Logged in successfully","data":{"access_token":"..."}}
+
+4. Test from SSH Server (directly on hosting):
+   curl -X POST https://api.edeenapp.co.uk/api/login -d "email=forcann66@gmail.com&password=Abcd@123"
+   
+   Result: JSON response (SUCCESS)
+   {"status":"success","message":"Logged in successfully","data":{"access_token":"142|y5HjaUqiGDt5d9k9bf0I9UUXJAtLLfO3npYQDlCg06a24c74"}}
+
+   This proves:
+   - The Laravel application works correctly
+   - The subdomain routing is configured correctly
+   - The CDN is intercepting external requests with JavaScript challenge
+
+================================================================================
+WHAT WE NEED:
+================================================================================
+
+Please VERIFY and ENSURE that the JavaScript Challenge is actually disabled 
+for the api.edeenapp.co.uk subdomain at the CDN level.
+
+The subdomain should:
+1. Allow POST/GET requests from mobile applications (User-Agent: axios, mobile apps)
+2. Return JSON responses from Laravel, NOT HTML challenge pages
+3. Maintain WAF protection (firewall, rate limiting)
+4. NOT require JavaScript execution or browser validation
+
+================================================================================
+TECHNICAL DETAILS:
+================================================================================
+
+Domain: edeenapp.co.uk
+API Subdomain: api.edeenapp.co.uk
+Server: 45.130.228.181
+Hosting Account: u402661558
+
+Laravel Path: /home/u402661558/domains/edeenapp.co.uk/laravel/
+API Subdomain Root: /home/u402661558/domains/edeenapp.co.uk/public_html/api/
+
+Files configured:
+- /public_html/api/index.php (forwards to Laravel)
+- /public_html/api/.htaccess (copied from Laravel public folder)
+
+Example blocked request:
+- URL: https://api.edeenapp.co.uk/api/login
+- Method: POST
+- Data: email=forcann66@gmail.com&password=Abcd@123
+- Current Response: 403 + HTML JavaScript challenge
+- Expected Response: 200 + JSON {"status":"success",...}
+
+================================================================================
+VERIFICATION STEPS:
+================================================================================
+
+After disabling the JavaScript challenge, please verify:
+
+1. From external location (not from server):
+   curl -v -X POST https://api.edeenapp.co.uk/api/login \
+   -H "Content-Type: application/x-www-form-urlencoded" \
+   -d "email=forcann66@gmail.com&password=Abcd@123"
+   
+   Expected: HTTP 200 with JSON response (or HTTP 401 if credentials invalid)
+   NOT: HTTP 403 with HTML JavaScript challenge page
+
+2. Check CDN settings specifically for api.edeenapp.co.uk subdomain
+   - Verify JavaScript Challenge setting: DISABLED
+   - Verify WAF setting: ENABLED
+   - Verify changes are applied and propagated
+
+================================================================================
+IMPACT:
+================================================================================
+
+- Mobile application cannot login
+- All API endpoints are inaccessible from mobile app
+- Users cannot use the application
+- Application has been non-functional for 2+ months
+
+================================================================================
+REQUEST:
+================================================================================
+
+Please disable the JavaScript Challenge for api.edeenapp.co.uk subdomain 
+and confirm when completed so we can test and verify the mobile app works.
+
+Thank you for your assistance.
+
+================================================================================
+CONTACT INFORMATION:
+================================================================================
+
+Email: forcann66@gmail.com
+Account: u402661558
+Domain: edeenapp.co.uk
+
+================================================================================

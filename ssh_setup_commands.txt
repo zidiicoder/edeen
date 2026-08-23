@@ -1,0 +1,6 @@
+echo '<?php' > ~/domains/edeenapp.co.uk/public_html/api/index.php
+echo '' >> ~/domains/edeenapp.co.uk/public_html/api/index.php
+echo "require '/home/u402661558/domains/edeenapp.co.uk/laravel/public/index.php';" >> ~/domains/edeenapp.co.uk/public_html/api/index.php
+cp ~/domains/edeenapp.co.uk/laravel/public/.htaccess ~/domains/edeenapp.co.uk/public_html/api/.htaccess
+echo 'Setup complete! Testing API...'
+curl -X POST https://api.edeenapp.co.uk/api/login -d 'email=forcann66@gmail.com&password=Abcd@123'

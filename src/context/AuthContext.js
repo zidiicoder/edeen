@@ -124,17 +124,24 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log('🔵 Login attempt starting...');
+      console.log('Email:', email);
+      console.log('Password length:', password?.length);
+      
       await AsyncStorage.setItem('email', email);
 
       const formData = new FormData();
       formData.append('email', email);
       formData.append('password', password);
 
+      console.log('🔵 Sending login request to API...');
       const response = await request({
         url: 'login',
         method: 'POST',
         data: formData,
       });
+
+      console.log('✅ Login API Response:', JSON.stringify(response, null, 2));
 
       await storeAuthData(response);
 
@@ -155,6 +162,10 @@ export const AuthProvider = ({ children }) => {
 
       return { isError: false, response };
     } catch (error) {
+      console.log('❌ Login failed with error:', error);
+      console.log('Error response:', error?.response?.data);
+      console.log('Error status:', error?.response?.status);
+      console.log('Error message:', error?.message);
       return { isError: true, error };
     }
   };

@@ -2,12 +2,13 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// New backend (Laravel) on edeenapp.co.uk. The web root points at the Laravel
-// `public/` folder, so the API lives under `/api/`. HTTPS is enabled on the
-// domain (the server 301-redirects plain http -> https), which is also required
-// by iOS App Transport Security.
+// New backend (Laravel) on api.edeenapp.co.uk subdomain (dedicated API endpoint
+// with JavaScript challenge disabled for mobile app compatibility). The web root
+// points at the Laravel `public/` folder, so the API lives under `/api/`. HTTPS
+// is enabled on the domain (the server 301-redirects plain http -> https), which
+// is also required by iOS App Transport Security.
 const api = axios.create({
-  baseURL: "https://edeenapp.co.uk/api/",
+  baseURL: "https://api.edeenapp.co.uk/api/",
   headers: {
     Accept: "application/json",
   },
@@ -51,6 +52,13 @@ export const request = async ({
       },
     };
 
+    console.log('📡 API Request:', {
+      url: config.url,
+      method: config.method,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`,
+    });
+
     if (data instanceof FormData) {
       config.headers["Content-Type"] = "multipart/form-data";
     }
@@ -62,9 +70,13 @@ export const request = async ({
     }
 
     const response = await api(config);
+    console.log('📡 API Response Status:', response.status);
+    console.log('📡 API Response Data:', response.data);
     return response.data;
   } catch (error) {
-    console.log("API Error:", error?.response?.data || error.message);
+    console.log("❌ API Error:", error?.response?.data || error.message);
+    console.log("❌ API Error Status:", error?.response?.status);
+    console.log("❌ API Error Full:", error);
     throw error;
   }
 };

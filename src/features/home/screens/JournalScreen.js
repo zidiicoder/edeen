@@ -8,108 +8,129 @@ import {
   TextInput,
   Platform,
   KeyboardAvoidingView,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
+import Svg, { Path } from 'react-native-svg';
 import colors from '../../../theme/colors';
 
 import { request } from '../../../utils/api';
 import { journalSchema } from '../../../validation/validate';
 import { handleBatchErrors } from '../../../utils';
-import CalendarModal from '../components/modal/CalendarModal';
-import ConfirmationModal from '../../../components/common/ConfirmationModal';
-import { toApiDate, toApiFilter } from '../constants/filters';
 import { AuthContext } from '../../../context/AuthContext';
 import { hapticTap } from '../../../utils/haptics';
 
-const MAX_GRATITUDE_ITEMS = 3;
-const SUMMARY_PREVIEW_LIMIT = 90;
-
 const MOOD_OPTIONS = [
-  { emoji: '🙁', label: 'Meh', bgColor: '#FDE9E2', iconBg: '#F6C9BD' },
-  { emoji: '😕', label: 'Chill', bgColor: '#ECE4FF', iconBg: '#D3C4FB' },
-  { emoji: '😐', label: 'Satisfied', bgColor: '#DFEAFF', iconBg: '#BFD4FF' },
-  { emoji: '🙂', label: 'Optimistic', bgColor: '#FFF3CE', iconBg: '#F8E28A' },
-  { emoji: '😄', label: 'Grateful', bgColor: '#DFF4E4', iconBg: '#BDEBC9' },
+  { emoji: '🙁', label: 'Meh', color: 'amber' },
+  { emoji: '😕', label: 'Chill', color: 'mint' },
+  { emoji: '😐', label: 'Satisfied', color: 'lavender' },
+  { emoji: '🙂', label: 'Optimistic', color: 'rose' },
+  { emoji: '😄', label: 'Grateful', color: 'amber' },
 ];
-const DEFAULT_MOOD = MOOD_OPTIONS[3];
 
-const FEELING_TAG_OPTIONS = [];
+// Map emoji to color for backward compatibility with server data
+function getColorFromEmoji(emoji) {
+  const mood = MOOD_OPTIONS.find(m => m.emoji === emoji);
+  return mood ? mood.color : DEFAULT_THEME;
+}
 
-function getMonthDays(date) {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const first = new Date(year, month, 1);
-  const last = new Date(year, month + 1, 0);
-  const days = [];
-  for (let d = 1; d <= last.getDate(); d += 1) {
-    days.push(new Date(year, month, d));
-  }
-  return { firstWeekday: (first.getDay() + 6) % 7, days };
+const THEMES = {
+  amber: {
+    card: '#FFF8EC',
+    border: '#F5C842',
+    badge: '#FEF3C7',
+    badgeText: '#92600A',
+    leaf: '#F5C84280',
+  },
+  mint: {
+    card: '#EDFAF4',
+    border: '#5DBD8A',
+    badge: '#D1FAE5',
+    badgeText: '#065F46',
+    leaf: '#5DBD8A60',
+  },
+  lavender: {
+    card: '#F5F0FF',
+    border: '#9B7FE8',
+    badge: '#EDE9FE',
+    badgeText: '#4C1D95',
+    leaf: '#9B7FE860',
+  },
+  rose: {
+    card: '#FFF0F3',
+    border: '#F472B6',
+    badge: '#FCE7F3',
+    badgeText: '#831843',
+    leaf: '#F472B660',
+  },
+};
+
+const DEFAULT_MOOD = MOOD_OPTIONS[0];
+const DEFAULT_THEME = 'amber';
+
+function LeafDecoration({ color, style }) {
+  return (
+    <View style={[styles.leafContainer, style]}>
+      <Svg width={112} height={144} viewBox="0 0 120 160" fill="none">
+        <Path
+          d="M90 150 C90 150 20 130 10 60 C0 -10 80 10 90 150Z"
+          fill={color}
+          opacity="0.6"
+        />
+        <Path
+          d="M90 150 L50 80"
+          stroke={color}
+          strokeWidth="1.5"
+          opacity="0.8"
+        />
+        <Path d="M50 80 C40 65 30 55 20 45" stroke={color} strokeWidth="1" opacity="0.6" />
+        <Path d="M50 80 C55 62 58 50 60 35" stroke={color} strokeWidth="1" opacity="0.6" />
+        <Path d="M65 110 C55 95 45 85 35 75" stroke={color} strokeWidth="1" opacity="0.5" />
+        <Path
+          d="M110 140 C110 140 60 128 55 85 C50 42 105 55 110 140Z"
+          fill={color}
+          opacity="0.35"
+        />
+        <Path d="M110 140 L82 100" stroke={color} strokeWidth="1" opacity="0.5" />
+      </Svg>
+    </View>
+  );
 }
 
 function formatEntryDate(dateValue) {
   if (!dateValue) return '';
   const parsed = new Date(dateValue);
   if (Number.isNaN(parsed.getTime())) return '';
-  return parsed.toLocaleDateString('default', {
+  return parsed.toLocaleDateString('en-GB', {
+    day: '2-digit',
     month: 'long',
-    day: 'numeric',
     year: 'numeric',
-  });
+  }).toUpperCase();
 }
 
 function normalizeTag(value) {
   return String(value || '').trim();
 }
 
-function normalizeList(value) {
-  if (Array.isArray(value)) {
-    return value.map(normalizeTag).filter(Boolean);
-  }
-
-  const normalizedValue = normalizeTag(value);
-  if (!normalizedValue) return [];
-
-  return normalizedValue
-    .split(',')
-    .map(normalizeTag)
-    .filter(Boolean);
-}
-
-function getMoodOptionByEmoji(emoji) {
-  return MOOD_OPTIONS.find(item => item.emoji === emoji) || DEFAULT_MOOD;
-}
-
-function getSummaryPreview(summary) {
-  const normalized = normalizeTag(summary).replace(/\s+/g, ' ');
-  if (normalized.length <= SUMMARY_PREVIEW_LIMIT) return normalized;
-  return `${normalized.slice(0, SUMMARY_PREVIEW_LIMIT).trim()}...`;
-}
-
 function hydrateEntry(item) {
   const normalizedDescription = normalizeTag(item?.description || item?.body);
-  const normalizedTags = normalizeList(item?.tag);
-  const normalizedPromt = normalizeList(item?.promt ?? item?.prompt).slice(
-    0,
-    MAX_GRATITUDE_ITEMS,
-  );
-  const resolvedMood = getMoodOptionByEmoji(item?.emoji || item?.mood);
+  const resolvedMood = item?.emoji || item?.mood || DEFAULT_MOOD.emoji;
+  // If server doesn't return color, derive it from the emoji
+  const resolvedTheme = item?.color || item?.theme || getColorFromEmoji(resolvedMood) || DEFAULT_THEME;
 
   return {
     ...item,
     description: normalizedDescription,
     body: normalizedDescription,
     summary: normalizedDescription,
-    tag: normalizedTags,
-    promt: normalizedPromt,
-    feelingTags: normalizedTags,
-    gratitudeItems: normalizedPromt,
-    mood: resolvedMood.emoji,
-    moodLabel: resolvedMood.label,
+    mood: resolvedMood,
+    theme: resolvedTheme,
+    title: normalizeTag(item?.title || ''),
   };
 }
 
@@ -118,86 +139,52 @@ export default function JournalScreen() {
   const { user } = useContext(AuthContext);
 
   const [entries, setEntries] = useState([]);
-  const [filter, setFilter] = useState('All');
-  const [calendarOpen, setCalendarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetchingEntries, setFetchingEntries] = useState(false);
   const [mode, setMode] = useState('empty');
   const [activeEntry, setActiveEntry] = useState(null);
   const [errors, setErrors] = useState({});
+  
   const [title, setTitle] = useState('');
   const [summaryText, setSummaryText] = useState('');
   const [mood, setMood] = useState(DEFAULT_MOOD.emoji);
-  const [feelingTags, setFeelingTags] = useState([]);
-  const [gratitudeItems, setGratitudeItems] = useState([]);
-  const [gratitudeInput, setGratitudeInput] = useState('');
-  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
+  const [theme, setTheme] = useState(DEFAULT_THEME);
 
-  const monthData = getMonthDays(selectedDate);
-  const monthLabel = selectedDate.toLocaleString('default', {
-    month: 'long',
-    year: 'numeric',
-  });
-  const activeEntryId = activeEntry?.id;
+  const activeTheme = THEMES[theme] || THEMES[DEFAULT_THEME];
 
-  const activeMood = useMemo(() => getMoodOptionByEmoji(mood), [mood]);
+  const fetchJournals = useCallback(async () => {
+    try {
+      setFetchingEntries(true);
+      setLoading(true);
+      const res = await request({
+        url: 'journals',
+        method: 'GET',
+      });
 
-  const fetchJournals = useCallback(
-    async (selectedFilter = filter, date = selectedDate) => {
-      try {
-        setFetchingEntries(true);
-        setLoading(true);
-        const apiFilter = toApiFilter(selectedFilter);
-        let url = `journals?filter=${apiFilter}`;
-        if (apiFilter === 'custom') {
-          const apiDate = toApiDate(date);
-          if (apiDate) {
-            url += `&date=${apiDate}&custom_date=${apiDate}`;
-          }
-        }
-        const res = await request({
-          url,
-          method: 'GET',
-        });
+      const rawList = (res && res.data && res.data.journals) || [];
+      console.log('Raw journal data from server:', JSON.stringify(rawList, null, 2));
+      const list = rawList.map(hydrateEntry);
+      console.log('Hydrated journal data:', JSON.stringify(list, null, 2));
 
-        const rawList = (res && res.data && res.data.journals) || [];
-        const list = rawList.map(hydrateEntry);
-
-        setEntries(list);
-        setMode(list.length ? 'list' : 'empty');
-
-        if (activeEntryId) {
-          const refreshedActive = list.find(item => item.id === activeEntryId);
-          if (refreshedActive) {
-            setActiveEntry(refreshedActive);
-          }
-        }
-      } catch (err) {
-        console.log('Fetch Journals Error:', err);
-      } finally {
-        setFetchingEntries(false);
-        setLoading(false);
-      }
-    },
-    [activeEntryId, filter, selectedDate],
-  );
+      setEntries(list);
+      setMode(list.length ? 'list' : 'empty');
+    } catch (err) {
+      console.log('Fetch Journals Error:', err);
+    } finally {
+      setFetchingEntries(false);
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchJournals(filter, selectedDate);
-  }, [filter, selectedDate, fetchJournals]);
+    fetchJournals();
+  }, [fetchJournals]);
 
   const clearEditorState = useCallback(() => {
     setTitle('');
     setSummaryText('');
     setMood(DEFAULT_MOOD.emoji);
-    setFeelingTags([]);
-    setGratitudeItems([]);
-    setGratitudeInput('');
+    setTheme(DEFAULT_THEME);
   }, []);
 
   const openEditor = entry => {
@@ -210,9 +197,7 @@ export default function JournalScreen() {
       setTitle(hydrated.title || '');
       setSummaryText(hydrated.description || '');
       setMood(hydrated.mood || DEFAULT_MOOD.emoji);
-      setFeelingTags(hydrated.tag || []);
-      setGratitudeItems((hydrated.promt || []).slice(0, MAX_GRATITUDE_ITEMS));
-      setGratitudeInput('');
+      setTheme(hydrated.theme || DEFAULT_THEME);
     } else {
       setActiveEntry(null);
       clearEditorState();
@@ -226,63 +211,32 @@ export default function JournalScreen() {
     setMode(entries.length ? 'list' : 'empty');
   };
 
-  const toggleFeelingTag = selectedTag => {
-    setFeelingTags(prev => {
-      if (prev.includes(selectedTag)) {
-        return prev.filter(item => item !== selectedTag);
-      }
-      return [...prev, selectedTag];
-    });
-  };
-
-  const addGratitudeItem = () => {
-    const nextValue = normalizeTag(gratitudeInput);
-    if (!nextValue) return;
-    if (gratitudeItems.length >= MAX_GRATITUDE_ITEMS) return;
-    setGratitudeItems(prev => [...prev, nextValue]);
-    setGratitudeInput('');
-  };
-
-  const removeGratitudeItem = indexToRemove => {
-    setGratitudeItems(prev =>
-      prev.filter((_, index) => index !== indexToRemove),
-    );
-  };
-
   const saveEntry = async () => {
     hapticTap();
-    const pendingListValue = normalizeTag(gratitudeInput);
-    const normalizedGratitude = [...gratitudeItems]
-      .map(normalizeTag)
-      .filter(Boolean)
-      .slice(0, MAX_GRATITUDE_ITEMS);
-
-    if (
-      pendingListValue &&
-      normalizedGratitude.length < MAX_GRATITUDE_ITEMS &&
-      !normalizedGratitude.includes(pendingListValue)
-    ) {
-      normalizedGratitude.push(pendingListValue);
-    }
-
-    const normalizedTags = feelingTags.map(normalizeTag).filter(Boolean);
+    
     const payload = {
       title: normalizeTag(title),
       description: normalizeTag(summaryText),
-      emoji: activeMood.emoji,
-      tag: normalizedTags.join(', '),
-      promt: normalizedGratitude,
+      emoji: mood,
+      color: theme,
+      tag: '',
+      promt: [],
     };
+    
+    console.log('Saving journal entry with payload:', JSON.stringify(payload, null, 2));
     
     try {
       setErrors({});
       await journalSchema.validate(payload, { abortEarly: false });
       setLoading(true);
+      
       const requestPayload = {
         ...payload,
         date: activeEntry?.date || new Date().toISOString(),
-        color: activeEntry?.color || '#FF5733',
       };
+      
+      console.log('Final request payload:', JSON.stringify(requestPayload, null, 2));
+      
       if (activeEntry) {
         await request({
           url: `journals/${activeEntry.id}`,
@@ -297,10 +251,10 @@ export default function JournalScreen() {
         });
       }
 
-      setGratitudeInput('');
       await fetchJournals();
       setMode('list');
       setActiveEntry(null);
+      clearEditorState();
     } catch (err) {
       handleBatchErrors(err, setErrors);
     } finally {
@@ -308,21 +262,20 @@ export default function JournalScreen() {
     }
   };
 
-  const deleteEntry = async () => {
-    if (!activeEntry) return false;
+  const deleteEntry = async (entryToDelete) => {
+    const entry = entryToDelete || activeEntry;
+    if (!entry) return false;
 
     try {
       setLoading(true);
-
       await request({
-        url: `journals/${activeEntry.id}`,
+        url: `journals/${entry.id}`,
         method: 'DELETE',
       });
 
       await fetchJournals();
-      setDeleteConfirmVisible(false);
       setActiveEntry(null);
-      setMode('list');
+      setMode(entries.length > 1 ? 'list' : 'empty');
       return true;
     } catch (err) {
       console.log('Delete Journal Error:', err);
@@ -332,140 +285,74 @@ export default function JournalScreen() {
     }
   };
 
-  const openDeleteConfirm = () => {
-    if (!activeEntry) return;
-    setDeleteConfirmVisible(true);
-  };
-
-  const closeDeleteConfirm = () => {
-    if (loading) return;
-    setDeleteConfirmVisible(false);
-  };
-
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <CalendarModal
-        visible={calendarOpen}
-        monthLabel={monthLabel}
-        monthData={monthData}
-        selectedDate={selectedDate}
-        onSelectDate={date => {
-          const next = new Date(date);
-          next.setHours(0, 0, 0, 0);
-          setSelectedDate(next);
-          setFilter('Custom');
-        }}
-        onClose={() => setCalendarOpen(false)}
-      />
-
       <KeyboardAvoidingView
         style={[
           styles.container,
-          mode === 'edit' && { backgroundColor: activeMood.bgColor },
+          mode === 'edit' && { backgroundColor: activeTheme.card },
         ]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {mode !== 'edit' && (
-          <Text style={styles.pageTitle}>My Journal</Text>
-        )}
-        {mode === 'edit' && (
+        {mode === 'edit' ? (
           <ScrollView
             contentContainerStyle={[
               styles.editWrap,
-              { paddingBottom: 140 + insets.bottom },
+              { paddingBottom: 40 + insets.bottom },
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.formCard}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Activity Summary</Text>
-                <TouchableOpacity
-                  style={styles.closeBtn}
-                  onPress={closeEditor}
-                  activeOpacity={0.85}
-                >
-                  <Feather name="x" size={16} color={colors.textPrimary} />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.subLabel}>Today you focused on:</Text>
+            {/* Top bar */}
+            <View style={styles.topBar}>
+              <TouchableOpacity
+                onPress={closeEditor}
+                style={styles.backButton}
+                activeOpacity={0.7}
+              >
+                <Feather name="arrow-left" size={18} color="#1a1a1a" />
+              </TouchableOpacity>
+              <Text style={styles.topBarTitle}>New Entry</Text>
+            </View>
+
+            {/* Date display */}
+            <Text style={styles.dateLabel}>
+              {new Date().toLocaleDateString('en-GB', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              }).toUpperCase()}
+            </Text>
+
+            {/* Title */}
+            <View style={styles.fieldContainer}>
+              <Text style={styles.fieldLabel}>TITLE</Text>
               <TextInput
                 value={title}
                 onChangeText={text => {
                   setTitle(text);
                   if (errors.title) setErrors(prev => ({ ...prev, title: null }));
                 }}
-                placeholder="Text"
-                placeholderTextColor="#8A8A8A"
+                placeholder="What's on your mind today?"
+                placeholderTextColor="#999"
+                maxLength={80}
                 style={[
-                  styles.primaryInput,
+                  styles.titleInput,
                   errors.title && styles.inputError,
                 ]}
               />
-              {errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
-            </View>
-
-            <View style={styles.formCard}>
-              <Text style={styles.sectionTitle}>How are you feeling today?</Text>
-              <View style={styles.moodRow}>
-                {MOOD_OPTIONS.map(option => {
-                  const selected = option.emoji === mood;
-                  return (
-                    <TouchableOpacity
-                      key={option.label}
-                      style={[
-                        styles.moodItem,
-                        selected && styles.moodItemActive,
-                      ]}
-                      activeOpacity={0.85}
-                      onPress={() => {
-                        hapticTap();
-                        setMood(option.emoji);
-                      }}
-                    >
-                      <View
-                        style={[
-                          styles.moodIconWrap,
-                          { backgroundColor: option.iconBg },
-                        ]}
-                      >
-                        <Text style={styles.moodEmoji}>{option.emoji}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <View style={styles.tagWrap}>
-                {FEELING_TAG_OPTIONS.map(item => {
-                  const selected = feelingTags.includes(item);
-                  return (
-                    <TouchableOpacity
-                      key={item}
-                      activeOpacity={0.85}
-                      style={[
-                        styles.feelingTag,
-                        selected && styles.feelingTagActive,
-                      ]}
-                      onPress={() => toggleFeelingTag(item)}
-                    >
-                      <Text
-                        style={[
-                          styles.feelingTagText,
-                          selected && styles.feelingTagTextActive,
-                        ]}
-                      >
-                        {item}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+              <View style={styles.fieldFooter}>
+                {errors.title ? (
+                  <Text style={styles.errorText}>{errors.title}</Text>
+                ) : <View />}
+                <Text style={styles.charCount}>{title.length}/80</Text>
               </View>
             </View>
 
-            <View style={styles.formCard}>
-              <Text style={styles.sectionTitle}>Write a summary of your day</Text>
-              <Text style={styles.subLabel}>Start writing...</Text>
+            {/* Body */}
+            <View style={styles.fieldContainer}>
+              <Text style={styles.fieldLabel}>YOUR THOUGHTS</Text>
               <TextInput
                 value={summaryText}
                 onChangeText={text => {
@@ -476,635 +363,641 @@ export default function JournalScreen() {
                 }}
                 multiline
                 textAlignVertical="top"
-                placeholder="Start writing..."
-                placeholderTextColor="#9A9A9A"
+                placeholder="Write freely — no rules, no judgment. This is just for you..."
+                placeholderTextColor="#999"
+                maxLength={1000}
                 style={[
-                  styles.summaryInput,
+                  styles.bodyInput,
                   errors.description && styles.inputError,
                 ]}
               />
-              {errors.description && (
-                <Text style={styles.errorText}>{errors.description}</Text>
-              )}
-            </View>
-
-            <View style={styles.formCard}>
-              <Text style={styles.sectionTitle}>
-                List three things you&apos;re grateful for today
-              </Text>
-
-              {!!gratitudeItems.length && (
-                <View style={styles.gratitudeList}>
-                  {gratitudeItems.map((item, index) => (
-                    <View key={`${item}-${index}`} style={styles.gratitudeItemRow}>
-                      <Text style={styles.gratitudeItemText}>• {item}</Text>
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => removeGratitudeItem(index)}
-                      >
-                        <Feather name="x" size={15} color="#8A8A8A" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              <View style={styles.addListRow}>
-                <TextInput
-                  value={gratitudeInput}
-                  onChangeText={setGratitudeInput}
-                  placeholder="+ Add list"
-                  placeholderTextColor="#8A8A8A"
-                  style={styles.addListInput}
-                  onSubmitEditing={addGratitudeItem}
-                  returnKeyType="done"
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.addListBtn,
-                    gratitudeItems.length >= MAX_GRATITUDE_ITEMS && { opacity: 0.45 },
-                  ]}
-                  onPress={addGratitudeItem}
-                  disabled={gratitudeItems.length >= MAX_GRATITUDE_ITEMS}
-                  activeOpacity={0.85}
-                >
-                  <Feather name="plus" size={16} color={colors.textPrimary} />
-                </TouchableOpacity>
+              <View style={styles.fieldFooter}>
+                {errors.description ? (
+                  <Text style={styles.errorText}>{errors.description}</Text>
+                ) : <View />}
+                <Text style={styles.charCount}>{summaryText.length}/1000</Text>
               </View>
             </View>
 
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={[styles.saveBtn, loading && { opacity: 0.6 }]}
-                onPress={saveEntry}
-                disabled={loading}
-              >
-                <Text style={styles.saveBtnText}>
-                  {loading ? 'Saving...' : activeEntry ? 'Update Journal' : 'Save Journal'}
-                </Text>
-              </TouchableOpacity>
-
-              {!!activeEntry && (
-                <TouchableOpacity
-                  style={[styles.deleteBtn, loading && { opacity: 0.6 }]}
-                  onPress={openDeleteConfirm}
-                  disabled={loading}
-                >
-                  <Text style={styles.deleteBtnText}>Delete</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </ScrollView>
-        )}
-
-        {mode !== 'edit' && fetchingEntries && (
-          <ScrollView
-            contentContainerStyle={[
-              styles.listWrap,
-              { paddingBottom: 140 + insets.bottom },
-            ]}
-            showsVerticalScrollIndicator={false}
-          >
-            {Array.from({ length: 4 }).map((_, index) => (
-              <View key={`journal-skeleton-${index}`} style={styles.listCard}>
-                <View style={styles.listHeaderRow}>
-                  <View style={styles.skeletonLineLong} />
-                  <View style={styles.skeletonPill} />
-                </View>
-                <View style={styles.skeletonLineShort} />
-                <View style={styles.skeletonTagRow}>
-                  <View style={styles.skeletonTag} />
-                  <View style={styles.skeletonTag} />
-                  <View style={styles.skeletonTag} />
-                </View>
+            {/* Mood picker */}
+            <View style={styles.fieldContainer}>
+              <View style={styles.moodHeader}>
+                <Text style={styles.fieldLabel}>HOW ARE YOU FEELING?</Text>
+                {errors.mood && (
+                  <Text style={styles.errorTextInline}>Pick a mood</Text>
+                )}
               </View>
-            ))}
-          </ScrollView>
-        )}
-
-        {mode === 'list' && !fetchingEntries && (
-          <ScrollView
-            contentContainerStyle={[
-              styles.listWrap,
-              { paddingBottom: 140 + insets.bottom },
-            ]}
-            showsVerticalScrollIndicator={false}
-          >
-            {entries.map(item => {
-              const moodOption = getMoodOptionByEmoji(item.mood);
-              const tags = item.tag || [];
-              const promptItems = (item.promt || []).slice(0, 3);
-              const gratitudePreview = promptItems;
-              return (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[
-                    styles.listCard,
-                    { backgroundColor: moodOption.bgColor, borderColor: moodOption.iconBg },
-                  ]}
-                  activeOpacity={0.9}
-                  onPress={() => openEditor(item)}
-                >
-                  <View style={styles.listHeaderRow}>
-                    <View style={styles.listDateWrap}>
-                      <Text style={styles.listMetaLabel}>Journal Entry</Text>
-                      <Text style={styles.listDate}>{formatEntryDate(item.date)}</Text>
-                    </View>
-                    <View
+              <View style={[
+                styles.moodGrid,
+                errors.mood && styles.inputError
+              ]}>
+                {MOOD_OPTIONS.map((m) => {
+                  const selected = mood === m.emoji;
+                  const themeColors = THEMES[m.color];
+                  return (
+                    <TouchableOpacity
+                      key={m.emoji}
+                      onPress={() => {
+                        hapticTap();
+                        setMood(m.emoji);
+                        setTheme(m.color);
+                        if (errors.mood) setErrors(prev => ({ ...prev, mood: null }));
+                      }}
                       style={[
-                        styles.moodPill,
-                        { backgroundColor: moodOption.bgColor },
+                        styles.moodButton,
+                        { backgroundColor: themeColors.card },
+                        selected && {
+                          ...styles.moodButtonActive,
+                          borderColor: themeColors.border,
+                        },
+                      ]}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[
+                        styles.moodEmoji,
+                        {
+                          textShadowColor: 'rgba(255, 255, 255, 0.8)',
+                          textShadowOffset: { width: 0, height: 1 },
+                          textShadowRadius: 3,
+                        }
+                      ]}>{m.emoji}</Text>
+                      <Text style={[
+                        styles.moodLabel,
+                        selected && styles.moodLabelActive,
+                      ]}>
+                        {m.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Save button */}
+            <TouchableOpacity
+              onPress={saveEntry}
+              style={styles.saveButtonBottom}
+              activeOpacity={0.7}
+              disabled={loading}
+            >
+              <Text style={styles.saveButtonText}>
+                {loading ? 'Saving...' : 'Save'}
+              </Text>
+            </TouchableOpacity>
+
+          </ScrollView>
+        ) : (
+          <>
+            {/* Header */}
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.headerTitle}>My Journal</Text>
+              </View>
+            </View>
+
+            {/* Entries */}
+            <ScrollView
+              contentContainerStyle={[
+                styles.listWrap,
+                { paddingBottom: 40 + insets.bottom },
+              ]}
+              showsVerticalScrollIndicator={false}
+            >
+              {fetchingEntries ? (
+                <View style={styles.emptyContainer}>
+                  <ActivityIndicator size="large" color="#999" />
+                  <Text style={styles.emptyTitle}>Loading...</Text>
+                </View>
+              ) : entries.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Image 
+                    source={require('../../../assets/navigation/journal.png')} 
+                    style={styles.emptyIcon}
+                  />
+                  <Text style={styles.emptyTitle}>No entries yet</Text>
+                  <Text style={styles.emptySub}>
+                    Tap + to write your first one
+                  </Text>
+                </View>
+              ) : (
+                entries.map(item => {
+                  const t = THEMES[item.theme] || THEMES[DEFAULT_THEME];
+                  return (
+                    <View
+                      key={item.id}
+                      style={[
+                        styles.entryCard,
+                        {
+                          backgroundColor: t.card,
+                          borderLeftColor: t.border,
+                        },
                       ]}
                     >
-                      <Text style={styles.moodPillEmoji}>{item.emoji || moodOption.emoji}</Text>
-                    </View>
-                  </View>
-
-                  {!!item.title && (
-                    <Text style={styles.focusedText}>{item.title}</Text>
-                  )}
-
-                  {!!tags.length && (
-                    <View style={styles.previewTagRow}>
-                      {tags.slice(0, 3).map(tag => (
-                        <View key={`${item.id}-${tag}`} style={styles.previewTag}>
-                          <Text style={styles.previewTagText}>{tag}</Text>
+                      <TouchableOpacity
+                        style={styles.cardClickable}
+                        activeOpacity={0.9}
+                        onPress={() => openEditor(item)}
+                      >
+                        <LeafDecoration
+                          color={t.leaf}
+                          style={styles.cardLeaf}
+                        />
+                        <View style={styles.cardContent}>
+                          <View
+                            style={[
+                              styles.cardBadge,
+                              { backgroundColor: t.badge },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.cardBadgeText,
+                                { color: t.badgeText },
+                              ]}
+                            >
+                              {formatEntryDate(item.date)}
+                            </Text>
+                          </View>
+                          <Text style={styles.cardTitle}>{item.title}</Text>
+                          {item.description && (
+                            <Text style={styles.cardBody}>
+                              {item.description}
+                            </Text>
+                          )}
                         </View>
-                      ))}
+                        <View style={styles.cardMoodCircle}>
+                          <Text style={styles.cardMoodEmoji}>{item.mood}</Text>
+                        </View>
+                      </TouchableOpacity>
+                      
+                      {/* Action buttons */}
+                      <View style={styles.cardActions}>
+                        <View style={styles.cardDivider} />
+                        <View style={styles.cardButtons}>
+                          <TouchableOpacity
+                            style={styles.cardActionButton}
+                            onPress={() => openEditor(item)}
+                            activeOpacity={0.7}
+                          >
+                            <Feather name="edit-2" size={16} color="#666" />
+                            <Text style={styles.cardActionText}>Edit</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.cardActionButton}
+                            onPress={() => {
+                              hapticTap();
+                              deleteEntry(item);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Feather name="trash-2" size={16} color="#EF4444" />
+                            <Text style={[styles.cardActionText, { color: '#EF4444' }]}>Delete</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                     </View>
-                  )}
+                  );
+                })
+              )}
+            </ScrollView>
 
-                  {!!promptItems.length && (
-                    <Text style={styles.summaryPreview}>
-                      {gratitudePreview.join(' • ')}
-                    </Text>
-                  )}
-
-                  {!!item.description && (
-                    <Text style={styles.summaryPreview}>
-                      {getSummaryPreview(item.description)}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+            {/* Floating Action Button */}
+            <TouchableOpacity
+              onPress={() => openEditor(null)}
+              style={[styles.fabBottom, { bottom: 100 + insets.bottom }]}
+              activeOpacity={0.85}
+            >
+              <Feather name="plus" size={24} color="#1a1a1a" />
+            </TouchableOpacity>
+          </>
         )}
-
-        {mode === 'empty' && !fetchingEntries && (
-          <View style={styles.emptyWrap}>
-            <Feather name="book-open" size={100} color="#D9B87A" />
-            <Text style={styles.emptyTitle}>No Journal Yet</Text>
-            <Text style={styles.emptySub}>Start your reflection for today.</Text>
-          </View>
-        )}
-
-        {mode !== 'edit' && (
-          <TouchableOpacity
-            style={[styles.fab, { bottom: 86 + insets.bottom }]}
-            onPress={() => openEditor(null)}
-            activeOpacity={0.88}
-          >
-            <Text style={styles.fabText}>+</Text>
-          </TouchableOpacity>
-        )}
-
-        <ConfirmationModal
-          visible={deleteConfirmVisible}
-          title="Delete Journal?"
-          message={
-            activeEntry?.title
-              ? `This will permanently delete "${activeEntry.title}".`
-              : 'This will permanently delete this journal entry.'
-          }
-          confirmText="Delete"
-          cancelText="Keep It"
-          confirmVariant="danger"
-          iconName="trash-2"
-          loading={loading}
-          onCancel={closeDeleteConfirm}
-          onConfirm={deleteEntry}
-        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-
-  editWrap: { padding: 14, gap: 12 },
-  formCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#ECE8F8',
-  },
-  sectionHeaderRow: {
+  safe: { flex: 1, backgroundColor: '#F0EDE8' },
+  container: { flex: 1, backgroundColor: '#F0EDE8' },
+  
+  // Edit mode
+  editWrap: { paddingHorizontal: 20, paddingTop: 12 },
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 19,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    marginTop: 16,
-    marginBottom: 4,
-    paddingHorizontal: 16,
-  },
-  subLabel: {
-    marginTop: 6,
-    fontSize: 14,
-    color: '#5F5F5F',
-  },
-  closeBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#F3F0FB',
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E0DBD4',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryInput: {
-    marginTop: 8,
-    borderRadius: 16,
-    backgroundColor: '#F6F6F9',
-    borderWidth: 1,
-    borderColor: '#ECECF0',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 17,
-    color: colors.textPrimary,
+  topBarTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
-  summaryInput: {
-    marginTop: 10,
-    borderRadius: 16,
-    backgroundColor: '#F6F6F9',
-    borderWidth: 1,
-    borderColor: '#ECECF0',
-    minHeight: 120,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  saveButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F4C9E4',
+  },
+  saveButtonText: {
     fontSize: 14,
-    color: colors.textPrimary,
+    fontWeight: '600',
+    color: '#1a1a1a',
   },
-  inputError: {
-    borderColor: '#FF4D4F',
+  saveButtonBottom: {
+    backgroundColor: '#F4C9E4',
+    paddingVertical: 14,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  
+  dateLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: '#AAA',
+    marginBottom: 20,
+  },
+  
+  fieldContainer: { marginBottom: 20 },
+  fieldLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: '#888',
+    marginBottom: 8,
+  },
+  fieldFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+    paddingHorizontal: 4,
+  },
+  charCount: {
+    fontSize: 11,
+    color: '#BBB',
   },
   errorText: {
-    marginTop: 6,
     fontSize: 11,
-    color: '#FF4D4F',
+    color: '#EF4444',
   },
-
-  moodRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
+  errorTextInline: {
+    fontSize: 10,
+    color: '#EF4444',
   },
-  moodItem: {
-    flex: 1,
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    paddingVertical: 8,
-  },
-  moodItemActive: {
-    borderColor: '#D8D8DE',
-    backgroundColor: '#F3F3F6',
-  },
-  moodIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  moodEmoji: { fontSize: 22 },
-  moodLabel: {
-    marginTop: 6,
-    fontSize: 11,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  tagWrap: {
-    marginTop: 12,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  feelingTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: '#F1F1F5',
-    borderWidth: 1,
-    borderColor: '#E8E8EC',
-  },
-  feelingTagActive: {
-    backgroundColor: '#E8E8ED',
-    borderColor: '#D6D6DE',
-  },
-  feelingTagText: {
-    fontSize: 13,
-    color: '#5C5C5C',
-    fontWeight: '500',
-  },
-  feelingTagTextActive: {
-    color: '#3F3F46',
-    fontWeight: '700',
-  },
-
-  gratitudeList: {
-    marginTop: 10,
-    gap: 6,
-  },
-  gratitudeItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F7F7FA',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#ECE8F0',
-  },
-  gratitudeItemText: { fontSize: 13, color: '#565656', flex: 1, marginRight: 8 },
-  addListRow: {
-    marginTop: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#ECECF0',
-    backgroundColor: '#F7F7FA',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingRight: 6,
-  },
-  addListInput: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  addListBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  
+  titleInput: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E2E7',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
-
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 2,
-  },
-  saveBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 11,
-    borderRadius: 999,
-    backgroundColor: '#F4C9E4',
-    borderWidth: 1,
-    borderColor: '#E3A8CC',
-  },
-  saveBtnText: {
+  bodyInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
     fontSize: 14,
-    fontWeight: '700',
-    color: '#3F2A36',
+    color: '#333',
+    lineHeight: 22,
+    minHeight: 140,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
-  deleteBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    borderRadius: 999,
+  inputError: {
     backgroundColor: '#FFF0F0',
+    borderColor: '#F87171',
+  },
+  
+  moodHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  moodGrid: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  moodButton: {
+    flex: 1,
+    backgroundColor: '#F7F5F2',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: 'transparent',
+  },
+  moodButtonActive: {
+    transform: [{ scale: 1.05 }],
+    borderWidth: 2.5,
+  },
+  moodEmoji: { 
+    fontSize: 28, 
+    marginBottom: 6,
+  },
+  moodLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#555',
+  },
+  moodLabelActive: { 
+    color: '#1a1a1a',
+    fontWeight: '700',
+  },
+  
+  themeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  themeButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: 'transparent',
+  },
+  themeDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  
+  // Preview card
+  previewCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderLeftWidth: 4,
+  },
+  previewLeaf: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+  },
+  previewContent: {
+    padding: 20,
+    paddingRight: 56,
+    zIndex: 10,
+  },
+  previewBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  previewBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.2,
+  },
+  previewTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 8,
+    lineHeight: 24,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  previewBody: {
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 20,
+  },
+  previewMoodCircle: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  previewMoodEmoji: { fontSize: 20 },
+  
+  deleteButton: {
+    backgroundColor: '#FFF0F0',
+    borderRadius: 20,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
     borderWidth: 1,
     borderColor: '#F3C3C3',
   },
-  deleteBtnText: {
+  deleteButtonText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#AA3A3A',
   },
-
-  listWrap: { padding: 14 },
-  listCard: {
-    backgroundColor: '#FAFAFB',
-    borderRadius: 28,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E7E8EC',
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    ...Platform.select({ android: { elevation: 3 } }),
-  },
-  listHeaderRow: {
+  
+  // List mode
+  header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  headerDate: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: '#AAA',
+  },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginTop: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  fabBottom: {
+    position: 'absolute',
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F4C9E4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  
+  listWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  
+  leafContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+  },
+  
+  entryCard: {
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardLeaf: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+  },
+  cardContent: {
+    padding: 20,
+    paddingRight: 56,
+    zIndex: 10,
+  },
+  cardBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  cardBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.2,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 8,
+    lineHeight: 26,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  cardBody: {
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 20,
+  },
+  cardMoodCircle: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardMoodEmoji: { fontSize: 20 },
+  
+  // Card actions
+  cardClickable: {
+    position: 'relative',
+  },
+  cardActions: {
+    backgroundColor: 'transparent',
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#E0E0E0',
+    marginHorizontal: 16,
+    marginTop: 12,
+  },
+  cardButtons: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 12,
   },
-  listDateWrap: {
+  cardActionButton: {
     flex: 1,
-  },
-  listMetaLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: '#8A8F98',
-  },
-  listDate: {
-    marginTop: 4,
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  moodPill: {
-    borderRadius: 999,
-    minWidth: 42,
-    minHeight: 42,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(80, 60, 40, 0.08)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
   },
-  moodPillEmoji: { fontSize: 20 },
-  moodPillText: {
+  cardActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+  },
+  
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 120,
+  },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    marginBottom: 20,
+    opacity: 0.4,
+  },
+  emptyEmoji: { fontSize: 48, marginBottom: 12 },
+  emptyTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4E4E4E',
-  },
-  focusedText: {
-    marginTop: 14,
-    fontSize: 20,
-    lineHeight: 26,
-    color: '#2F241C',
-    fontWeight: '700',
-  },
-  previewTagRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  previewTag: {
-    backgroundColor: '#F1F2F5',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: '#E1E4E8',
-  },
-  previewTagText: {
-    fontSize: 12,
-    color: '#5F6670',
-    fontWeight: '600',
-  },
-  summaryPreview: {
-    marginTop: 12,
-    fontSize: 13,
-    color: '#666D78',
-    lineHeight: 21,
-    backgroundColor: '#F4F5F7',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: '#E4E7EB',
-  },
-
-  emptyWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 18,
-    margin: 14,
-    borderWidth: 1,
-    borderColor: '#ECE8F8',
-    borderRadius: 24,
-  },
-  emptyTitle: {
-    marginTop: 10,
-    fontSize: 17,
-    color: colors.textPrimary,
-    fontWeight: '700',
+    color: '#BBB',
   },
   emptySub: {
-    marginTop: 6,
-    fontSize: 13,
-    color: '#7A7A7A',
-  },
-
-  skeletonLineLong: {
-    height: 13,
-    width: 160,
-    borderRadius: 8,
-    backgroundColor: '#EFEFF3',
-  },
-  skeletonLineShort: {
-    marginTop: 10,
-    height: 12,
-    width: 120,
-    borderRadius: 8,
-    backgroundColor: '#EFEFF3',
-  },
-  skeletonPill: {
-    height: 28,
-    width: 90,
-    borderRadius: 999,
-    backgroundColor: '#EFEFF3',
-  },
-  skeletonTagRow: {
-    marginTop: 10,
-    flexDirection: 'row',
-    gap: 6,
-  },
-  skeletonTag: {
-    height: 24,
-    width: 70,
-    borderRadius: 999,
-    backgroundColor: '#EFEFF3',
-  },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#F4C9E4',
-    borderWidth: 1,
-    borderColor: '#E3A8CC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    ...Platform.select({ android: { elevation: 6 } }),
-  },
-  fabText: { fontSize: 28, color: '#FFFFFF', marginBottom: 2 },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.10)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 90,
-    paddingRight: 18,
-  },
-  dropdownCard: {
-    width: 150,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F2B7D9',
-    paddingVertical: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  dropdownItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginHorizontal: 8,
-    marginVertical: 4,
-  },
-  dropdownItemActive: {
-    backgroundColor: '#F4C9E4',
-  },
-  dropdownText: {
-    fontSize: 13,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  dropdownTextActive: {
-    fontWeight: '800',
+    fontSize: 12,
+    color: '#CCC',
+    marginTop: 4,
   },
 });

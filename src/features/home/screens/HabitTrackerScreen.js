@@ -112,6 +112,7 @@ export default function HabitTrackerScreen() {
   const [errors, setErrors] = useState({});
   const [notice, setNotice] = useState({ visible: false, message: '' });
   const [expandedHabits, setExpandedHabits] = useState({});
+  const [habitCalendarMonths, setHabitCalendarMonths] = useState({}); // Track each habit's calendar month view
   const noticeTimerRef = useRef(null);
 
   // Animation refs for empty state FAB
@@ -345,6 +346,37 @@ export default function HabitTrackerScreen() {
       ...prev,
       [habitId]: !prev[habitId],
     }));
+  };
+
+  const getHabitCalendarMonth = habitId => {
+    // Return the stored month for this habit, or default to current month
+    if (habitCalendarMonths[habitId]) {
+      return new Date(habitCalendarMonths[habitId]);
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  };
+
+  const setHabitCalendarMonth = (habitId, date) => {
+    setHabitCalendarMonths(prev => ({
+      ...prev,
+      [habitId]: date.toISOString(),
+    }));
+  };
+
+  const goToPreviousMonth = habitId => {
+    const current = getHabitCalendarMonth(habitId);
+    const prev = new Date(current);
+    prev.setMonth(prev.getMonth() - 1);
+    setHabitCalendarMonth(habitId, prev);
+  };
+
+  const goToNextMonth = habitId => {
+    const current = getHabitCalendarMonth(habitId);
+    const next = new Date(current);
+    next.setMonth(next.getMonth() + 1);
+    setHabitCalendarMonth(habitId, next);
   };
 
   const openAdd = () => {
@@ -970,24 +1002,16 @@ export default function HabitTrackerScreen() {
                 <View style={styles.habitCalendarWrap}>
                   {/* Month Navigation */}
                   <View style={styles.calendarHeader}>
-                    <TouchableOpacity onPress={() => {
-                      const prev = new Date(selectedDate);
-                      prev.setMonth(prev.getMonth() - 1);
-                      setSelectedDate(prev);
-                    }}>
+                    <TouchableOpacity onPress={() => goToPreviousMonth(habit.id)}>
                       <Feather name="chevron-left" size={20} color="#111111" />
                     </TouchableOpacity>
                     <View style={styles.calendarMonthRow}>
                       <Text style={styles.calendarMonth}>
-                        {selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                        {getHabitCalendarMonth(habit.id).toLocaleString('default', { month: 'long', year: 'numeric' })}
                       </Text>
                       <Feather name="calendar" size={16} color="#111111" />
                     </View>
-                    <TouchableOpacity onPress={() => {
-                      const next = new Date(selectedDate);
-                      next.setMonth(next.getMonth() + 1);
-                      setSelectedDate(next);
-                    }}>
+                    <TouchableOpacity onPress={() => goToNextMonth(habit.id)}>
                       <Feather name="chevron-right" size={20} color="#111111" />
                     </TouchableOpacity>
                   </View>
@@ -1002,7 +1026,8 @@ export default function HabitTrackerScreen() {
                   {/* Calendar Grid */}
                   <View style={styles.calendarGrid}>
                     {(() => {
-                      const monthData = getMonthDays(selectedDate);
+                      const habitCalendarDate = getHabitCalendarMonth(habit.id);
+                      const monthData = getMonthDays(habitCalendarDate);
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
                       
@@ -1690,8 +1715,8 @@ daysTextRight: {
     height: 36,
     borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(17, 17, 17, 0.12)',
+    borderWidth: 0,
+    borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
