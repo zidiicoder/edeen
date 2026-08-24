@@ -7,6 +7,7 @@ import {
   ScrollView,
   Switch,
   Modal,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
@@ -242,15 +243,18 @@ export default function ReminderScreen() {
                   <Text style={styles.cardTitle}>{reminder.title}</Text>
                   <Text style={styles.cardSub}>{reminder.subtitle}</Text>
                 </View>
-                <Switch
-                  value={enabled}
-                  disabled={isBusy}
-                  onValueChange={value =>
-                    updateReminder(reminder.type, { enabled: value })
-                  }
-                  trackColor={{ false: '#E3E3E3', true: '#F1C3DD' }}
-                  thumbColor={enabled ? '#E85D9A' : '#FAFAFA'}
-                />
+                <View style={styles.switchContainer}>
+                  <Switch
+                    value={enabled}
+                    disabled={isBusy}
+                    onValueChange={value =>
+                      updateReminder(reminder.type, { enabled: value })
+                    }
+                    trackColor={{ false: '#E3E3E3', true: '#F1C3DD' }}
+                    thumbColor={enabled ? '#E85D9A' : '#FAFAFA'}
+                    ios_backgroundColor="#E3E3E3"
+                  />
+                </View>
               </View>
 
               {reminder.hasTime ? (
@@ -468,6 +472,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
+    overflow: 'visible',
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center' },
   cardIcon: {
@@ -478,6 +483,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+  },
+  switchContainer: {
+    minWidth: 51,
+    minHeight: 31,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'ios' && {
+      transform: [{ scale: 1 }],
+    }),
   },
   cardHeaderText: { flex: 1 },
   cardTitle: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
