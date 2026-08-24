@@ -212,6 +212,8 @@ export default function ReminderScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.intro}>
           Get gentle daily push notifications so you never miss your habits or
@@ -243,7 +245,17 @@ export default function ReminderScreen() {
                   <Text style={styles.cardTitle}>{reminder.title}</Text>
                   <Text style={styles.cardSub}>{reminder.subtitle}</Text>
                 </View>
-                <View style={styles.switchContainer}>
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={() => {
+                    if (!isBusy) {
+                      updateReminder(reminder.type, { enabled: !enabled });
+                    }
+                  }}
+                  disabled={isBusy}
+                  style={styles.switchContainer}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
                   <Switch
                     value={enabled}
                     disabled={isBusy}
@@ -253,8 +265,9 @@ export default function ReminderScreen() {
                     trackColor={{ false: '#E3E3E3', true: '#F1C3DD' }}
                     thumbColor={enabled ? '#E85D9A' : '#FAFAFA'}
                     ios_backgroundColor="#E3E3E3"
+                    pointerEvents="none"
                   />
-                </View>
+                </TouchableOpacity>
               </View>
 
               {reminder.hasTime ? (
@@ -491,6 +504,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...(Platform.OS === 'ios' && {
       transform: [{ scale: 1 }],
+      zIndex: 999,
     }),
   },
   cardHeaderText: { flex: 1 },
