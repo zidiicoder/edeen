@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
 import notifee, {
   AndroidImportance,
+  AuthorizationStatus,
   RepeatFrequency,
   TriggerType,
 } from '@notifee/react-native';
@@ -152,7 +153,15 @@ export const displayLocalNotification = async remoteMessage => {
 
 export const hasUserNotificationPermission = async () => {
   try {
-    if (Platform.OS === 'android' && Platform.Version >= 33) {
+    if (Platform.OS === 'ios') {
+      const settings = await notifee.getNotificationSettings();
+      return (
+        settings.authorizationStatus === AuthorizationStatus.AUTHORIZED ||
+        settings.authorizationStatus === AuthorizationStatus.PROVISIONAL
+      );
+    }
+
+    if (Platform.Version >= 33) {
       const androidGranted = await PermissionsAndroid.check(
         PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
       );
@@ -283,6 +292,12 @@ export const cancelReminder = async reminderId => {
 
 const createTriggerReminder = async ({ id, title, body, timestamp, repeatFrequency }) => {
   const channelId = await createReminderNotificationChannel();
+  const trigger = {
+    type: TriggerType.TIMESTAMP,
+    timestamp,
+    repeatFrequency,
+    ...(Platform.OS === 'android' && { alarmManager: { allowWhileIdle: true } }),
+  };
   await notifee.createTriggerNotification(
     {
       id,
@@ -295,14 +310,7 @@ const createTriggerReminder = async ({ id, title, body, timestamp, repeatFrequen
         importance: AndroidImportance.HIGH,
       },
     },
-    {
-      type: TriggerType.TIMESTAMP,
-      timestamp,
-      repeatFrequency,
-      // Fire even when the device is in Doze / the app is closed. Without this
-      // Android batches the alarm and the reminder can be skipped while idle.
-      alarmManager: { allowWhileIdle: true },
-    },
+    trigger,
   );
 };
 

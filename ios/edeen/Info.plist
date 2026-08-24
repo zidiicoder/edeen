@@ -39,6 +39,8 @@
 	<string>We use your location to calculate accurate prayer times for your area.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We use your location to calculate accurate prayer times for your area, even when the app is in the background.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>We would like to send you reminders for your daily habits, journaling, and prayer times to help you stay consistent.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library to allow you to select and upload photos for your profile or other features in the app.</string>
 	<key>RCTNewArchEnabled</key>
