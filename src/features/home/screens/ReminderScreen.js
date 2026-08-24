@@ -310,6 +310,7 @@ export default function ReminderScreen() {
                         name="clock"
                         size={12}
                         color={isCustomTime ? '#FFFFFF' : ACCENT}
+                        style={styles.customTimeIcon}
                       />
                       <Text
                         style={[
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center' },
   cardIcon: {
     width: 40,
     height: 40,
@@ -476,6 +477,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4C9E4',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
   cardHeaderText: { flex: 1 },
   cardTitle: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
@@ -485,8 +487,8 @@ const styles = StyleSheet.create({
   presetRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
     marginTop: 10,
+    marginHorizontal: -4,
   },
   presetChip: {
     paddingHorizontal: 12,
@@ -495,6 +497,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4F4F4',
     borderWidth: 1,
     borderColor: '#ECECEC',
+    marginHorizontal: 4,
+    marginBottom: 8,
   },
   presetChipActive: { backgroundColor: '#F1C3DD', borderColor: '#E59EC6' },
   presetText: { fontSize: 12, color: colors.textPrimary },
@@ -502,9 +506,11 @@ const styles = StyleSheet.create({
   customTimeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
     backgroundColor: '#E8F5F9',
     borderColor: '#B3E0ED',
+  },
+  customTimeIcon: {
+    marginRight: 6,
   },
   customTimeText: {
     fontSize: 12,
