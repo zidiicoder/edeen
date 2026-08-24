@@ -1,0 +1,20 @@
+# Add this to the TOP of your public/.htaccess file on the server
+# This allows all mobile app requests to bypass IP restrictions
+
+<IfModule mod_rewrite.c>
+    # Allow mobile app user agents
+    RewriteCond %{HTTP_USER_AGENT} "Android|iPhone|iPad|Mobile" [NC]
+    RewriteRule .* - [E=MOBILE:1]
+</IfModule>
+
+# Disable ModSecurity for mobile app requests
+<IfModule mod_security.c>
+    SecRuleEngine Off
+</IfModule>
+
+# Allow all IPs for API subdomain (remove any Deny/Allow directives)
+# Comment out or remove any lines like:
+# Deny from all
+# Allow from xxx.xxx.xxx.xxx
+
+# Your existing .htaccess rules below...
