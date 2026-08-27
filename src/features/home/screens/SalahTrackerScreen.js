@@ -20,7 +20,7 @@ import TrackingQuranPanel from '../components/tracking/TrackingQuranPanel';
 import QiblaPanel from '../components/tracking/QiblaPanel';
 import CalendarModal from '../components/modal/CalendarModal';
 import { request } from '../../../utils/api';
-import { saveUserLocation } from '../../../utils/notifications';
+import { saveUserLocation, getStoredUserLocation } from '../../../utils/notifications';
 import { AuthContext } from '../../../context/AuthContext';
 
 const TRACKER_OPTIONS = [
@@ -222,6 +222,8 @@ export default function SalahTrackerScreen({ navigation }) {
   const [deviceLocation, setDeviceLocation] = useState(null);
   const [locationReady, setLocationReady] = useState(false);
   const [locationServicesEnabled, setLocationServicesEnabled] = useState(null); // null = checking, true = enabled, false = disabled
+  const [locationAttempted, setLocationAttempted] = useState(false); // true once we've tried (GPS/stored) at least once
+  const [retryToken, setRetryToken] = useState(0); // bump to re-run location detection on demand
   const [selectedMonthDate] = useState(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -284,15 +286,22 @@ export default function SalahTrackerScreen({ navigation }) {
     [getTodayDateKey()]: true,
   }));
 
-  // Use deviceLocation state, which will re-trigger effects when location is obtained
-  const latitude = route?.params?.latitude ?? deviceLocation?.latitude ?? 24.8607;
-  const longitude = route?.params?.longitude ?? deviceLocation?.longitude ?? 67.0011;
-  const isUsingFallbackLocation = !route?.params?.latitude && !deviceLocation?.latitude;
-  const locationSource = route?.params?.latitude 
-    ? 'Navigation Params' 
-    : deviceLocation?.latitude 
-      ? `GPS (${deviceLocation.latitude.toFixed(4)}, ${deviceLocation.longitude.toFixed(4)})` 
-      : 'Default (Karachi)';
+  // Resolve the location for prayer times. We NEVER fall back to a hardcoded
+  // city (that is what made worldwide users see Karachi times): the app relies on
+  // the device GPS and, for returning users, the last-known location that was
+  // saved on a previous successful fix. If neither is available we show an
+  // "enable location" prompt instead of guessing a location.
+  const latitude = route?.params?.latitude ?? deviceLocation?.latitude ?? null;
+  const longitude = route?.params?.longitude ?? deviceLocation?.longitude ?? null;
+  const hasResolvedLocation = latitude != null && longitude != null;
+  const locationSource = route?.params?.latitude
+    ? 'Navigation Params'
+    : deviceLocation?.latitude
+      ? `GPS (${deviceLocation.latitude.toFixed(4)}, ${deviceLocation.longitude.toFixed(4)})`
+      : 'Location unavailable';
+  const handleRetryLocation = useCallback(() => {
+    setRetryToken(token => token + 1);
+  }, []);
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') {
       return true;
@@ -339,6 +348,9 @@ export default function SalahTrackerScreen({ navigation }) {
     useCallback(() => {
       let isFocused = true;
       let pollInterval = null;
+      // retryToken is referenced here so the "Try again" button (which bumps it)
+      // re-runs location detection via this focus effect.
+      console.log('[SalahTracker] Location detection run:', retryToken);
       
       const attemptLocationFetch = async (shouldPromptEnable = false) => {
         if (!isFocused) return false;
@@ -439,11 +451,29 @@ export default function SalahTrackerScreen({ navigation }) {
         // Clear previous state
         setLocationReady(false);
         setLocationServicesEnabled(null);
-        setDeviceLocation(null);
+        setLocationAttempted(false);
         setSalahTime({});
-        
+
+        // Seed from the last-known location saved on a previous successful GPS
+        // fix. This lets returning users see prayer times for their real area
+        // instantly (and keeps working offline / when GPS is slow) instead of
+        // falling back to a hardcoded city. A fresh GPS fix below refines it.
+        if (!(route?.params?.latitude && route?.params?.longitude)) {
+          const stored = await getStoredUserLocation();
+          if (!isFocused) return;
+          if (stored?.latitude != null && stored?.longitude != null) {
+            setDeviceLocation(stored);
+            setLocationReady(true);
+          } else {
+            setDeviceLocation(null);
+          }
+        }
+
         // Try immediately with location enable prompt
         const success = await attemptLocationFetch(true);
+        if (isFocused) {
+          setLocationAttempted(true);
+        }
         
         if (success) {
           console.log('[SalahTracker] Location obtained successfully!');
@@ -479,7 +509,7 @@ export default function SalahTrackerScreen({ navigation }) {
           clearInterval(pollInterval);
         }
       };
-    }, [route?.params?.latitude, route?.params?.longitude])
+    }, [route?.params?.latitude, route?.params?.longitude, retryToken])
   );
 
 
@@ -492,6 +522,11 @@ export default function SalahTrackerScreen({ navigation }) {
 
     const getCurrentSalahTime = useCallback(async () => {
       const requestTimeout = 12000;
+      // Never fetch with an unknown location — that previously caused a default
+      // city's (Karachi) times to be shown to users worldwide.
+      if (latitude == null || longitude == null) {
+        return;
+      }
       console.log('[SalahTracker] Fetching prayer times for:', { latitude, longitude });
 
       try {
@@ -540,11 +575,14 @@ export default function SalahTrackerScreen({ navigation }) {
     }, [latitude, longitude]);
 
     useEffect(()=>{
+      if (!hasResolvedLocation) {
+        return;
+      }
       if (!route?.params?.latitude && !route?.params?.longitude && !locationReady) {
         return;
       }
       getCurrentSalahTime();
-    },[latitude, longitude, locationReady, route?.params?.latitude, route?.params?.longitude, getCurrentSalahTime]);
+    },[latitude, longitude, hasResolvedLocation, locationReady, route?.params?.latitude, route?.params?.longitude, getCurrentSalahTime]);
 
     // Re-derive the current/upcoming prayer every minute (and when timings load)
     // so the hero card advances on its own without re-fetching.
@@ -553,6 +591,48 @@ export default function SalahTrackerScreen({ navigation }) {
         setSalahTime(computeCurrentUpcoming(dayTimings, new Date()));
       }
     }, [tick, dayTimings]);
+
+  const heroSkeletonCard = (
+    <View style={styles.currentSalahCard}>
+      <View style={styles.heroBackdrop}>
+        <View style={styles.heroMoon} />
+        <View style={styles.heroStarSmall} />
+        <View style={styles.heroStarMedium} />
+        <View style={styles.heroGlow} />
+      </View>
+      <View style={styles.salahLabelSkeleton} />
+      <View style={styles.salahNameSkeleton} />
+      <View style={styles.salahValueSkeleton} />
+      <View style={styles.salahNextSkeleton} />
+    </View>
+  );
+
+  // Shown when we cannot determine the user's location (permission denied or
+  // device location off). We intentionally do NOT show any prayer times here,
+  // because guessing a location produced wrong (Karachi) times worldwide.
+  const locationNeededCard = (
+    <View style={styles.currentSalahCard}>
+      <View style={styles.heroBackdrop}>
+        <View style={styles.heroMoon} />
+        <View style={styles.heroStarSmall} />
+        <View style={styles.heroStarMedium} />
+        <View style={styles.heroGlow} />
+      </View>
+      <Text style={styles.currentSalahLabel}>Location needed</Text>
+      <Text style={styles.currentSalahErrorText}>
+        {locationServicesEnabled === false
+          ? 'Your device location is turned off. Turn it on to see accurate prayer times for your area.'
+          : 'Allow location access to see accurate prayer times for your area.'}
+      </Text>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        style={styles.retryButton}
+        onPress={handleRetryLocation}
+      >
+        <Text style={styles.retryButtonText}>Try again</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -609,19 +689,10 @@ export default function SalahTrackerScreen({ navigation }) {
               ))}
             </View>
           </View>
+        ) : !hasResolvedLocation ? (
+          locationAttempted ? locationNeededCard : heroSkeletonCard
         ) : showCurrentSalahSkeleton ? (
-          <View style={styles.currentSalahCard}>
-            <View style={styles.heroBackdrop}>
-              <View style={styles.heroMoon} />
-              <View style={styles.heroStarSmall} />
-              <View style={styles.heroStarMedium} />
-              <View style={styles.heroGlow} />
-            </View>
-            <View style={styles.salahLabelSkeleton} />
-            <View style={styles.salahNameSkeleton} />
-            <View style={styles.salahValueSkeleton} />
-            <View style={styles.salahNextSkeleton} />
-          </View>
+          heroSkeletonCard
         ) : hasSalahTimeData ? (
           <View style={styles.currentSalahCard}>
             <View style={styles.heroBackdrop}>
@@ -712,14 +783,22 @@ export default function SalahTrackerScreen({ navigation }) {
         )}
 
         {activeTracker === 'qibla' ? (
-          <QiblaPanel latitude={latitude} longitude={longitude} />
+          hasResolvedLocation ? (
+            <QiblaPanel latitude={latitude} longitude={longitude} />
+          ) : (
+            locationNeededCard
+          )
+        ) : activeTracker === 'quran' ? (
+          <TrackingQuranPanel
+            date={selectedMonthDate}
+          />
         ) : getSalahTimeLoading ? (
           <View style={styles.trackerSkeletonWrap}>
             <View style={styles.trackerSkeletonLine} />
             <View style={styles.trackerSkeletonLine} />
             <View style={[styles.trackerSkeletonLine, { width: '70%' }]} />
           </View>
-        ) : activeTracker === 'salah' ? (
+        ) : hasResolvedLocation ? (
           <TrackingSalahPanel
             latitude={latitude}
             longitude={longitude}
@@ -729,11 +808,7 @@ export default function SalahTrackerScreen({ navigation }) {
             staticPrayerTimes={PRAYER_TIMES}
             timings={dayTimings}
           />
-        ) : (
-          <TrackingQuranPanel
-            date={selectedMonthDate}
-          />
-        )}
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

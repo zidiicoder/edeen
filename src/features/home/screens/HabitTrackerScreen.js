@@ -931,6 +931,12 @@ export default function HabitTrackerScreen() {
                 ? Boolean(dayUpdatingMap[`${habit.id}-${currentDayIndex}`])
                 : false;
 
+              // A habit is "completed" once every target day has been marked.
+              const totalForHabit = getTotalDays(habit);
+              const completedForHabit = getCompletedCount(habit);
+              const isHabitCompleted =
+                totalForHabit > 0 && completedForHabit >= totalForHabit;
+
               return (
               <View
                 key={habit.id}
@@ -963,13 +969,26 @@ export default function HabitTrackerScreen() {
                           ]}
                         />
                       </View>
-                      <View style={styles.daysCompletedCard}>
-                        <Text style={styles.daysCompletedNumber}>
-                          {getCompletedCount(habit)}/{getTotalDays(habit)} Days
-                        </Text>
-                        <Text style={styles.daysCompletedLabel}>
-                          Days completed
-                        </Text>
+                      {isHabitCompleted ? (
+                        <View style={styles.progressCheckCircle}>
+                          <Feather name="check" size={14} color="#FFFFFF" />
+                        </View>
+                      ) : null}
+                      <View style={styles.progressRightCol}>
+                        <View style={styles.daysCompletedCard}>
+                          <Text style={styles.daysCompletedNumber}>
+                            {getCompletedCount(habit)}/{getTotalDays(habit)} Days
+                          </Text>
+                          <Text style={styles.daysCompletedLabel}>
+                            Days completed
+                          </Text>
+                        </View>
+                        {isHabitCompleted ? (
+                          <View style={styles.completedBadge}>
+                            <Feather name="star" size={12} color="#2E9E52" />
+                            <Text style={styles.completedBadgeText}>Completed!</Text>
+                          </View>
+                        ) : null}
                       </View>
                     </View>
                   </View>
@@ -1442,7 +1461,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 12,
     minWidth: 100,
   },
 
@@ -1457,6 +1475,45 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#666666',
+  },
+
+  // Right-hand column holding the "days completed" card and, once every day
+  // is marked, the "Completed!" badge underneath it.
+  progressRightCol: {
+    marginLeft: 12,
+    alignItems: 'stretch',
+    gap: 6,
+  },
+
+  // Green tick shown at the end of the progress line when the habit is complete.
+  progressCheckCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#34A853',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    marginLeft: -10,
+    zIndex: 2,
+  },
+
+  completedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#DCF3E1',
+  },
+
+  completedBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#2E9E52',
   },
 
   progressPill: {

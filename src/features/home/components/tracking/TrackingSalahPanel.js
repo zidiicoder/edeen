@@ -86,6 +86,13 @@ export default function TrackingSalahPanel({latitude, longitude, date, staticPra
       setPrayerTimes(formatPrayerTimes(timings));
       return;
     }
+    // Without a resolved location we must NOT fetch (or show hardcoded default
+    // times) — doing so previously showed a default city's (Karachi) times to
+    // users worldwide. Wait until the parent resolves the real location.
+    if (latitude == null || longitude == null) {
+      setPrayerTimes([]);
+      return;
+    }
     try {
       setLoading(true);
       const res = await request({url:`salah/timings?latitude=${latitude}&longitude=${longitude}&date=${dateKey}`, method:'GET'});
@@ -93,7 +100,9 @@ export default function TrackingSalahPanel({latitude, longitude, date, staticPra
       // Just show today's times, no tomorrow times
       setPrayerTimes(formatPrayerTimes(res.data.timings));
     } catch (error) {
-      setPrayerTimes(staticPrayerTimes || []);
+      // Keep the list empty rather than showing misleading fixed placeholder
+      // times for the wrong location.
+      setPrayerTimes([]);
     } finally {
       setLoading(false);
     }

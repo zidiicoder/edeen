@@ -17,9 +17,10 @@ const REMINDER_NOTIFICATION_CHANNEL_ID = 'reminders';
 const REMINDER_SETTINGS_KEY = 'reminder_settings';
 export const USER_LOCATION_KEY = 'user_location';
 
-// Default fallback location (matches SalahTrackerScreen) so Salah check-ins can
-// still be scheduled before the device location is resolved.
-const DEFAULT_LOCATION = { latitude: 24.8607, longitude: 67.0011 };
+// NOTE: We deliberately do NOT keep a hardcoded fallback location here. A
+// default city (previously Karachi) meant users worldwide could be scheduled
+// Salah reminders for the wrong location. Instead, reminders are only scheduled
+// once the user's real location has been resolved and saved at least once.
 
 // Stable ids so re-scheduling replaces the existing reminder instead of stacking.
 export const REMINDER_IDS = {
@@ -361,26 +362,60 @@ export const scheduleWeeklyReminder = async ({ id, weekday, hour, minute, title,
 export const saveUserLocation = async location => {
   try {
     if (location?.latitude && location?.longitude) {
+      // Detect a meaningful change (~1km) so we only re-schedule Salah reminders
+      // when the location actually moves, not on every GPS fix.
+      let changed = true;
+      try {
+        const prevRaw = await AsyncStorage.getItem(USER_LOCATION_KEY);
+        if (prevRaw) {
+          const prev = JSON.parse(prevRaw);
+          if (prev?.latitude != null && prev?.longitude != null) {
+            const movedLat = Math.abs(prev.latitude - location.latitude);
+            const movedLng = Math.abs(prev.longitude - location.longitude);
+            changed = movedLat > 0.01 || movedLng > 0.01;
+          }
+        }
+      } catch (compareError) {
+        console.log('Compare Location Error:', compareError);
+      }
+
       await AsyncStorage.setItem(USER_LOCATION_KEY, JSON.stringify(location));
+
+      // Now that we know the user's real location, (re)schedule Salah check-ins
+      // if they are enabled — previously these defaulted to a wrong (Karachi)
+      // location for users worldwide.
+      if (changed) {
+        try {
+          const settings = await getReminderSettings();
+          if (settings?.salah?.enabled) {
+            await scheduleSalahCheckins();
+          }
+        } catch (rescheduleError) {
+          console.log('Reschedule Salah After Location Error:', rescheduleError);
+        }
+      }
     }
   } catch (error) {
     console.log('Save Location Error:', error);
   }
 };
 
-const getStoredLocation = async () => {
+// Returns the last-known location saved on a previous successful GPS fix, or
+// null when none has been stored yet. Used by the Salah screen (to show times
+// for the user's real area instantly) and by Salah reminder scheduling.
+export const getStoredUserLocation = async () => {
   try {
     const raw = await AsyncStorage.getItem(USER_LOCATION_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed?.latitude && parsed?.longitude) {
+      if (parsed?.latitude != null && parsed?.longitude != null) {
         return parsed;
       }
     }
   } catch (error) {
     console.log('Get Location Error:', error);
   }
-  return DEFAULT_LOCATION;
+  return null;
 };
 
 const toApiDate = date => {
@@ -412,7 +447,14 @@ export const scheduleSalahCheckins = async () => {
       return false;
     }
 
-    const { latitude, longitude } = await getStoredLocation();
+    // Only schedule once we know the user's real location. Without it we would
+    // schedule reminders for the wrong location (this was the worldwide bug).
+    const stored = await getStoredUserLocation();
+    if (!stored?.latitude || !stored?.longitude) {
+      console.log('Schedule Salah Check-ins: no known location yet, skipping.');
+      return false;
+    }
+    const { latitude, longitude } = stored;
     const date = toApiDate(new Date());
     const res = await request({
       url: `salah/timings?latitude=${latitude}&longitude=${longitude}&date=${date}`,
