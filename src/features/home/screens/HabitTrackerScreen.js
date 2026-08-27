@@ -1779,7 +1779,7 @@ daysTextRight: {
     justifyContent: 'center',
   },
   calendarDayCircleInRange: {
-    backgroundColor: 'rgba(244, 201, 228, 0.2)', // Light pink to show it's in the 40-day range
+    backgroundColor: '#FFFFFF', // White background for uncompleted days
     borderColor: 'rgba(244, 201, 228, 0.5)',
   },
   calendarDayCircleChecked: {
