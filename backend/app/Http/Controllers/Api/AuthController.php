@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\OtpMail;
 use App\Models\OtpCode;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -29,11 +30,7 @@ class AuthController extends Controller
 
         $this->issueOtp($user->email, 'verify');
 
-        $token = $this->makeToken($user);
-
         return $this->respond([
-            'access_token' => $token['token'],
-            'expires_in' => $token['expires_in'],
             'user' => $user->toApiArray(),
         ], 'Account created. An OTP has been sent to your email.', 201);
     }
@@ -50,6 +47,12 @@ class AuthController extends Controller
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             return $this->error('These credentials do not match our records.', 401, [
                 'email' => ['These credentials do not match our records.'],
+            ]);
+        }
+
+        if (! $user->email_verified_at) {
+            return $this->error('Please verify your email before logging in.', 403, [
+                'email' => ['Email not verified.'],
             ]);
         }
 
@@ -119,7 +122,13 @@ class AuthController extends Controller
             $user->forceFill(['email_verified_at' => now()])->save();
         }
 
-        return $this->respond(['user' => $user?->toApiArray()], 'Email verified successfully.');
+        $token = $user ? $this->makeToken($user) : null;
+
+        return $this->respond([
+            'access_token' => $token['token'] ?? null,
+            'expires_in' => $token['expires_in'] ?? null,
+            'user' => $user?->toApiArray(),
+        ], 'Email verified successfully.');
     }
 
     public function forgotPassword(Request $request)
@@ -184,14 +193,9 @@ class AuthController extends Controller
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        $subject = $purpose === 'reset' ? 'Your Edeen password reset code' : 'Your Edeen verification code';
-        $body = "Your Edeen code is: {$code}\n\nIt expires in 10 minutes.";
-
         try {
-            Mail::raw($body, function ($message) use ($email, $subject) {
-                $message->to($email)->subject($subject);
-            });
-            
+            Mail::to($email)->send(new OtpMail($code, $purpose, 10));
+
             // Log successful email sending
             Log::info("✅ OTP email sent successfully", [
                 'email' => $email,

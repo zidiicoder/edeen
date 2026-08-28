@@ -19,8 +19,8 @@ import TrackingSalahPanel from '../components/tracking/TrackingSalahPanel';
 import TrackingQuranPanel from '../components/tracking/TrackingQuranPanel';
 import QiblaPanel from '../components/tracking/QiblaPanel';
 import CalendarModal from '../components/modal/CalendarModal';
-import { request } from '../../../utils/api';
 import { saveUserLocation, getStoredUserLocation } from '../../../utils/notifications';
+import { computePrayerPayload } from '../../../utils/prayerTimes';
 import { AuthContext } from '../../../context/AuthContext';
 
 const TRACKER_OPTIONS = [
@@ -73,32 +73,6 @@ function computeCurrentUpcoming(timings, now = new Date()) {
     current: current ? { name: current.name, start_time: current.start_time } : null,
     upcoming: upcoming ? { name: upcoming.name, start_time: upcoming.start_time } : null,
   };
-}
-
-// Direct Aladhan fallback (the API needs no key) so prayer times still load even
-// if our own backend is ever unreachable.
-async function fetchAladhanTimingsDirect(latitude, longitude, date = new Date()) {
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const yyyy = date.getFullYear();
-  // Ahle Sunnat (Hanafi): method 1 (Karachi) + school 1 (Hanafi Asr).
-  const url = `https://api.aladhan.com/v1/timings/${dd}-${mm}-${yyyy}?latitude=${latitude}&longitude=${longitude}&method=1&school=1`;
-  const response = await fetch(url);
-  const json = await response.json();
-  const raw = json?.data?.timings || {};
-  const clean = {};
-  ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(key => {
-    const match = String(raw[key] || '').match(/(\d{1,2}:\d{2})/);
-    if (match) clean[key] = match[1];
-  });
-  
-  // Extract Hijri date
-  const hijri = json?.data?.date?.hijri;
-  const hijriFormatted = hijri 
-    ? `${hijri.day} ${hijri.month?.en || ''} ${hijri.year}`.trim()
-    : '';
-  
-  return { timings: clean, hijri: hijriFormatted };
 }
 
 const PRAYER_TIMES = [
@@ -520,39 +494,22 @@ export default function SalahTrackerScreen({ navigation }) {
     }));
   };
 
-    const getCurrentSalahTime = useCallback(async () => {
-      const requestTimeout = 12000;
-      // Never fetch with an unknown location — that previously caused a default
-      // city's (Karachi) times to be shown to users worldwide.
+    const getCurrentSalahTime = useCallback(() => {
+      // Never calculate with an unknown location — that previously caused a
+      // default city's (Karachi) times to be shown to users worldwide.
       if (latitude == null || longitude == null) {
         return;
       }
-      console.log('[SalahTracker] Fetching prayer times for:', { latitude, longitude });
+      console.log('[SalahTracker] Calculating prayer times on-device for:', { latitude, longitude });
 
       try {
         setGetSalahTimeLoading(true);
         setSalahTimeLoadError('');
 
-        // Fetch the full day's timings (single source of truth shared with the
-        // tracker list). Current/upcoming is then derived from the device clock.
-        let timings = null;
-        let hijri = null;
-        try {
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Salah time request timed out')), requestTimeout),
-          );
-          const res = await Promise.race([
-            request({ url: `salah/timings?latitude=${latitude}&longitude=${longitude}&date=${getTodayDateKey()}`, method: 'GET' }),
-            timeoutPromise,
-          ]);
-          timings = res?.data?.timings || null;
-          hijri = res?.data?.hijri || null;
-        } catch (backendError) {
-          console.log('[SalahTracker] Backend timings failed, trying Aladhan directly:', backendError?.message);
-          const aladhanResult = await fetchAladhanTimingsDirect(latitude, longitude, new Date());
-          timings = aladhanResult.timings;
-          hijri = { formatted: aladhanResult.hijri };
-        }
+        // Computed entirely on-device (no network, location never leaves the
+        // phone) — single source of truth shared with the tracker list below.
+        // Current/upcoming is then derived from the device clock.
+        const { timings, hijri } = computePrayerPayload(latitude, longitude, new Date());
 
         if (timings && Object.keys(timings).length > 0) {
           setDayTimings(timings);
@@ -567,7 +524,7 @@ export default function SalahTrackerScreen({ navigation }) {
         console.log('[SalahTracker] Prayer times error:', error);
         setDayTimings(null);
         setSalahTime({});
-        setSalahTimeLoadError('Unable to load prayer times. Please try again.');
+        setSalahTimeLoadError('Unable to calculate prayer times. Please try again.');
       } finally {
         setSalahTimeLoadedOnce(true);
         setGetSalahTimeLoading(false);

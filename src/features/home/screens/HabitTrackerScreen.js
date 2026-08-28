@@ -656,6 +656,24 @@ export default function HabitTrackerScreen() {
     getHabbitProgress(progressFilter, selectedDate);
   }, [progressFilter, selectedDate, getHabbitProgress]);
 
+  // Habits that have finished all their target days sink to the bottom of the
+  // list, so the active/in-progress habits stay at the top. Order within each
+  // group is otherwise preserved (Array.sort is stable).
+  const sortedHabits = useMemo(() => {
+    const incomplete = [];
+    const completed = [];
+    habits.forEach(habit => {
+      const total = getTargetDays(habit);
+      const done = getCompletedCount(habit);
+      if (total > 0 && done >= total) {
+        completed.push(habit);
+      } else {
+        incomplete.push(habit);
+      }
+    });
+    return [...incomplete, ...completed];
+  }, [habits]);
+
   const [dayUpdatingMap, setDayUpdatingMap] = useState({});
 
   // returns total boxes to show (from backend)
@@ -920,7 +938,7 @@ export default function HabitTrackerScreen() {
               </View>
             ))
           ) : (
-            habits.map(habit => {
+            sortedHabits.map(habit => {
               const isExpanded = Boolean(expandedHabits[habit.id]);
               const currentDayIndex = getCurrentDayIndex(habit);
               const isCurrentDayAvailable = currentDayIndex != null;
@@ -1094,9 +1112,7 @@ export default function HabitTrackerScreen() {
                                 isToday && !checked && [
                                   styles.calendarDayCircleToday,
                                   { 
-                                    backgroundColor: habit.color ? 
-                                      `${habit.color}80` : 
-                                      '#E8CDBA',
+                                    backgroundColor: '#FFFFFF', // White background for today
                                   }
                                 ],
                                 checked && [
@@ -1155,9 +1171,7 @@ export default function HabitTrackerScreen() {
                         styles.legendDot, 
                         styles.legendDotToday,
                         {
-                          backgroundColor: habit.color ? 
-                            `${habit.color}80` : 
-                            'rgba(255, 255, 255, 0.8)'
+                          backgroundColor: '#FFFFFF' // White background for today
                         }
                       ]} />
                       <Text style={[styles.legendLabel, styles.legendLabelToday]}>Today</Text>
@@ -1779,7 +1793,7 @@ daysTextRight: {
     justifyContent: 'center',
   },
   calendarDayCircleInRange: {
-    backgroundColor: '#FFFFFF', // White background for uncompleted days
+    backgroundColor: '#FFFFFF', // White background for all uncompleted days
     borderColor: 'rgba(244, 201, 228, 0.5)',
   },
   calendarDayCircleChecked: {
@@ -1829,12 +1843,12 @@ daysTextRight: {
     borderWidth: 1,
   },
   legendDotToday: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: '#FFFFFF', // Pure white for today
     borderWidth: 2,
     borderColor: '#000000',
   },
   legendDotNotDone: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: '#FFFFFF', // Pure white for not done
   },
   legendLabel: {
     fontSize: 11,

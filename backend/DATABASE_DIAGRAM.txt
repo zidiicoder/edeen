@@ -1,0 +1,248 @@
+# E-DEEN DATABASE RELATIONSHIPS DIAGRAM
+
+═══════════════════════════════════════════════════════════════════
+                    DATABASE STRUCTURE OVERVIEW
+═══════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      AUTHENTICATION LAYER                        │
+└─────────────────────────────────────────────────────────────────┘
+
+┌────────────────────┐         ┌────────────────────┐
+│      USERS         │         │        OTPS        │
+├────────────────────┤         ├────────────────────┤
+│ PK  id             │         │ PK  id             │
+│     name           │         │     email          │
+│ UQ  email          │◄────────┤     otp            │
+│     password       │         │     type           │
+│     is_verified    │         │     is_used        │
+│     device_token   │         │     expires_at     │
+│     created_at     │         └────────────────────┘
+│     updated_at     │         
+└────────────────────┘         ┌────────────────────┐
+         │                     │ PASSWORD_RESETS    │
+         │                     ├────────────────────┤
+         │                     │     email          │
+         │                     │     token          │
+         │                     │     created_at     │
+         │                     └────────────────────┘
+         │
+         │
+         ├──────────────────────────────────────────────────────┐
+         │                                                       │
+         │                                                       │
+         ▼                                                       │
+┌────────────────────┐                                          │
+│  USER_SETTINGS     │                                          │
+├────────────────────┤                                          │
+│ PK  id             │                                          │
+│ FK  user_id  ──────┼──────────────────────────────────────┐  │
+│     prayer_method  │                                       │  │
+│     notifications  │                                       │  │
+│     location       │                                       │  │
+│     timezone       │                                       │  │
+│     language       │                                       │  │
+│     theme          │                                       │  │
+└────────────────────┘                                       │  │
+                                                              │  │
+┌─────────────────────────────────────────────────────────────┐  │
+│                     APPLICATION LAYER                        │  │
+└─────────────────────────────────────────────────────────────┘  │
+                                                                 │
+┌────────────────────┐         ┌────────────────────┐          │
+│      HABITS        │         │ HABIT_COMPLETIONS  │          │
+├────────────────────┤         ├────────────────────┤          │
+│ PK  id             │◄────────┤ FK  habit_id       │          │
+│ FK  user_id  ──────┼─────┐   │ FK  user_id  ──────┼──────────┤
+│     name           │     │   │     completion_date│          │
+│     description    │     │   │     completed_at   │          │
+│     icon           │     │   └────────────────────┘          │
+│     color          │     │   UNIQUE: (habit_id, user_id,    │
+│     frequency      │     │           completion_date)        │
+│     start_date     │     │                                   │
+│     end_date       │     │                                   │
+│     notification   │     │                                   │
+│     is_active      │     │                                   │
+└────────────────────┘     │                                   │
+                           │                                   │
+                           │   ┌────────────────────┐          │
+                           │   │ JOURNAL_ENTRIES    │          │
+                           │   ├────────────────────┤          │
+                           │   │ PK  id             │          │
+                           └───┤ FK  user_id  ──────┼──────────┤
+                               │     title          │          │
+                               │     content        │          │
+                               │     mood           │          │
+                               │     entry_date     │          │
+                               │     entry_time     │          │
+                               └────────────────────┘          │
+                                                                │
+                               ┌────────────────────┐          │
+                               │    REMINDERS       │          │
+                               ├────────────────────┤          │
+                               │ PK  id             │          │
+                               │ FK  user_id  ──────┼──────────┘
+                               │     title          │
+                               │     description    │
+                               │     reminder_type  │
+                               │     reminder_date  │
+                               │     reminder_time  │
+                               │     is_completed   │
+                               │     is_active      │
+                               │     repeat_days    │
+                               │     notification   │
+                               └────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════
+                    FOREIGN KEY RELATIONSHIPS
+═══════════════════════════════════════════════════════════════════
+
+users (1) ──────────► (*) user_settings
+          │
+          ├─────────► (*) habits
+          │               │
+          │               └─────────► (*) habit_completions
+          │
+          ├─────────► (*) habit_completions (direct)
+          │
+          ├─────────► (*) journal_entries
+          │
+          └─────────► (*) reminders
+
+
+═══════════════════════════════════════════════════════════════════
+                       CASCADE BEHAVIOR
+═══════════════════════════════════════════════════════════════════
+
+ON DELETE CASCADE:
+├─ Delete user → Deletes all user_settings
+├─ Delete user → Deletes all habits
+├─ Delete user → Deletes all habit_completions
+├─ Delete user → Deletes all journal_entries
+├─ Delete user → Deletes all reminders
+└─ Delete habit → Deletes all habit_completions for that habit
+
+ON UPDATE CASCADE:
+└─ Update user.id → Updates all foreign key references
+
+
+═══════════════════════════════════════════════════════════════════
+                       TABLE STATISTICS
+═══════════════════════════════════════════════════════════════════
+
+Total Tables: 8
+
+Authentication Tables: 3
+├─ users
+├─ otps
+└─ password_resets
+
+Feature Tables: 5
+├─ user_settings
+├─ habits
+├─ habit_completions
+├─ journal_entries
+└─ reminders
+
+Total Foreign Keys: 7
+├─ user_settings.user_id → users.id
+├─ habits.user_id → users.id
+├─ habit_completions.habit_id → habits.id
+├─ habit_completions.user_id → users.id
+├─ journal_entries.user_id → users.id
+└─ reminders.user_id → users.id
+
+Total Indexes: 25+
+├─ Primary Keys: 8
+├─ Foreign Keys: 7
+├─ Unique Keys: 2 (users.email, unique_habit_completion)
+└─ Performance Indexes: 15+
+
+
+═══════════════════════════════════════════════════════════════════
+                    DATA TYPE SUMMARY
+═══════════════════════════════════════════════════════════════════
+
+STRING FIELDS:
+├─ VARCHAR(255) - Names, titles, emails
+├─ TEXT - Descriptions
+└─ LONGTEXT - Journal content
+
+NUMERIC FIELDS:
+├─ BIGINT UNSIGNED - IDs
+├─ TINYINT(1) - Boolean flags
+└─ DECIMAL - Coordinates
+
+DATE/TIME FIELDS:
+├─ TIMESTAMP - Created/updated times
+├─ DATE - Entry dates
+└─ TIME - Reminder times
+
+SPECIAL FIELDS:
+├─ ENUM - Fixed options (frequency, type, theme)
+└─ JSON - Flexible data (repeat_days)
+
+
+═══════════════════════════════════════════════════════════════════
+                    SECURITY FEATURES
+═══════════════════════════════════════════════════════════════════
+
+✓ Passwords hashed with bcrypt
+✓ Email verification required (is_verified flag)
+✓ OTP expiration mechanism
+✓ Single-use OTPs (is_used flag)
+✓ JWT token authentication (to be implemented)
+✓ Device token for push notifications
+✓ Proper foreign key constraints
+✓ Cascading deletes for data cleanup
+
+
+═══════════════════════════════════════════════════════════════════
+                    INDEXING STRATEGY
+═══════════════════════════════════════════════════════════════════
+
+PRIMARY INDEXES:
+All tables have auto-increment BIGINT UNSIGNED primary keys
+
+FOREIGN KEY INDEXES:
+All foreign keys automatically indexed for JOIN performance
+
+LOOKUP INDEXES:
+├─ users.email (for login)
+├─ otps.email (for OTP verification)
+├─ habits.user_id (for user habits)
+├─ journal_entries.user_id + entry_date (for journal listing)
+└─ reminders.user_id + is_active (for active reminders)
+
+PERFORMANCE INDEXES:
+├─ users.is_verified (for filtering verified users)
+├─ habits.is_active (for active habits only)
+├─ habits.frequency (for grouping by frequency)
+└─ reminders.is_completed (for filtering tasks)
+
+
+═══════════════════════════════════════════════════════════════════
+                    STORAGE ENGINE
+═══════════════════════════════════════════════════════════════════
+
+Engine: InnoDB
+Features:
+├─ ACID compliance
+├─ Foreign key support
+├─ Row-level locking
+├─ Crash recovery
+└─ Transaction support
+
+Character Set: utf8mb4
+Collation: utf8mb4_unicode_ci
+Benefits:
+├─ Full emoji support
+├─ Arabic text support
+├─ International characters
+└─ Proper sorting for all languages
+
+
+═══════════════════════════════════════════════════════════════════
+END OF DIAGRAM
+═══════════════════════════════════════════════════════════════════

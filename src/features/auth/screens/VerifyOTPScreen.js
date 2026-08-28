@@ -50,7 +50,16 @@ export default function VerifyOTPScreen() {
         return;
       }
       setLoading(false);
-      navigation.navigate('Login');
+
+      if (result.authenticated) {
+        // Verifying now logs the user straight in (the backend issues a
+        // token here rather than at signup). Reset the ROOT navigator so
+        // Main replaces the whole Auth stack.
+        const rootNav = navigation.getParent() || navigation;
+        rootNav.reset({ index: 0, routes: [{ name: 'Main' }] });
+      } else {
+        navigation.navigate('Login');
+      }
     } catch (error) {
       handleBatchErrors(error, setError);
     }

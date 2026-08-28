@@ -103,7 +103,13 @@ export const AuthProvider = ({ children }) => {
         method: 'POST',
         data: formData,
       });
-      return { isError: false, response };
+
+      const authenticated = Boolean(response?.data?.access_token);
+      if (authenticated) {
+        await storeAuthData(response);
+      }
+
+      return { isError: false, response, authenticated };
     } catch (error) {
       return { isError: true, error };
     }

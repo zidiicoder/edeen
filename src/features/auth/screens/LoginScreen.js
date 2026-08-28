@@ -52,6 +52,12 @@ export default function LoginScreen() {
       const result = await login(form.email, form.password);
 
       if (result.isError) {
+        if (result.error?.response?.status === 403) {
+          setApiError('Please verify your email before logging in.');
+          setLoading(false);
+          navigation.navigate('VerifyOTP');
+          return;
+        }
         setApiError('Invalid credentials. Please try again.');
         setLoading(false);
         return;
