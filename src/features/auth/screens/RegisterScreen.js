@@ -132,6 +132,7 @@ export default function RegisterScreen() {
               secureTextEntry={!showPassword}
               autoComplete="password-new"
               textContentType="newPassword"
+              passwordRules="minlength: 6;"
             />
             <TouchableOpacity
               style={styles.eyeButton}
@@ -163,6 +164,7 @@ export default function RegisterScreen() {
               secureTextEntry={!showConfirmPassword}
               autoComplete="password-new"
               textContentType="newPassword"
+              passwordRules="minlength: 6;"
             />
             <TouchableOpacity
               style={styles.eyeButton}

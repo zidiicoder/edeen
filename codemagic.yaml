@@ -11,14 +11,14 @@ workflows:
         BUNDLE_ID: "app.hashstack.edeen"
         XCODE_WORKSPACE: "ios/edeen.xcworkspace"
         XCODE_SCHEME: "edeen"
-        APP_STORE_CONNECT_KEY_IDENTIFIER: "Q49TZA5C7A"
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "456QWC8J4K"
         APP_STORE_CONNECT_ISSUER_ID: "5bf05485-6d13-4268-98e5-7c8c63f1f016"
         APP_STORE_CONNECT_PRIVATE_KEY: |
           -----BEGIN PRIVATE KEY-----
-          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgO4kBs5ctb2yNdoza
-          6rqbuQxfbit8ruoLcyyh1CYPJUmgCgYIKoZIzj0DAQehRANCAASIAkfgO5Q5O95a
-          p1YXGqYboKznVwGdNcTxnnY9anFs7F7yv5t2tgEOILsVXSjAbGCArwhsYLyWdBdl
-          a6lUPBVh
+          MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgm834wZ/O8MQe4lys
+          R28JQI76mEJ2M4rM2+eYB7w01ECgCgYIKoZIzj0DAQehRANCAAQeIxtjouVPbJmc
+          5M96ZvbnZEs7zcUUfyhc0gNLmgxXUAK8y+zyxjF4XO5hZn40FaIJ+9tu3xo2lAKj
+          +d4Ik00k
           -----END PRIVATE KEY-----
       node: latest
       # Apple requires the iOS 26 SDK (Xcode 26+). RN 0.83 ships fmt 12.1.0,

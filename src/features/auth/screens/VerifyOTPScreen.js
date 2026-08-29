@@ -110,6 +110,7 @@ export default function VerifyOTPScreen() {
               onChangeText={handleCodeChange}
               keyboardType="number-pad"
               maxLength={6}
+              textContentType="oneTimeCode"
             />
           </View>
 

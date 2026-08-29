@@ -106,6 +106,8 @@ export default function ForgotPasswordChangeScreen() {
               style={styles.input}
               value={form.code}
               onChangeText={text => handleChange('code', text)}
+              textContentType="oneTimeCode"
+              keyboardType="number-pad"
             />
           </View>
           {errors.code && <Text style={styles.errorText}>{errors.code}</Text>}
@@ -123,6 +125,9 @@ export default function ForgotPasswordChangeScreen() {
               secureTextEntry
               value={form.password}
               onChangeText={text => handleChange('password', text)}
+              autoComplete="password-new"
+              textContentType="newPassword"
+              passwordRules="minlength: 6;"
             />
           </View>
           {errors.password && (
@@ -142,6 +147,9 @@ export default function ForgotPasswordChangeScreen() {
               secureTextEntry
               value={form.confirm_password}
               onChangeText={text => handleChange('confirm_password', text)}
+              autoComplete="password-new"
+              textContentType="newPassword"
+              passwordRules="minlength: 6;"
             />
           </View>
           {errors.confirm_password && (
